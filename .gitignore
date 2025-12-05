@@ -1,0 +1,10 @@
+.idea
+.DS_Store
+.idea
+.empty
+.vscode
+
+# Python related files 
+**/__pycache__
+
+
