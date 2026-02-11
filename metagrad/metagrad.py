@@ -11,9 +11,6 @@ class MetaGrad(Optimizer):
                 self.state[p]["w_etas"] = {}
                 self.state[p]["B_prev"] = 0.0
 
-    def _clip_gradients(self, grad, B_current, B_prev):
-        return grad.mul_(B_prev / B_current)
-
     def step(self, closure=None):
         loss = None
         if closure is not None:
@@ -26,6 +23,7 @@ class MetaGrad(Optimizer):
             for p in group['params']:
                 loss = closure()
 
+            grad = p.grad
             state = self.state[p]
-            if len(state) == 0:
-                state['w_etas'][] = torch.zeros_like()
+            b_t = torch.abs(grad).max().item() * D_inf
+            B_t = max(state["B_prev"], b_t)
