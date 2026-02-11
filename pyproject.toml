@@ -1,0 +1,66 @@
+[project]
+name = "meta-grad-pytorch"
+version = "0.1.0"
+authors = [
+    {name="Hidde Fokkema"}
+]
+description = "A PyTorch implementation of the MetaGrad optimizer algorithm"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "torch>=2.9.1",
+    "torchvision>=0.24.1",
+    "ruff>=0.15.0",
+]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", marker = "sys_platform != 'linux'"},
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux'"}
+]
+torchvision = [
+    { index = "pytorch-cpu", marker = "sys_platform != 'linux'"},
+    { index = "pytorch-cu128", marker = "sys_platform == 'linux'"}
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.ruff] 
+line-length = 88
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".vscode",
+    "__pycache__",
+    "build",
+    "dist",
+    "sklearn/externals",
+    "doc/_build",
+    "doc/auto_examples",
+    "asv_benchmarks/env",
+    "asv_benchmarks/html",
+    "asv_benchmarks/results",
+    "asv_benchmarks/benchmarks/cache",
+]
+
+[tool.ruff.lint]
+# all rules can be found here: https://beta.ruff.rs/docs/rules/
+select = ["E", "F", "W", "I"]
+ignore=[
+    # space before : (needed for how black formats slicing)
+    "E203",
+    # do not assign a lambda expression, use a def
+    "E731",
+    # do not use variables named 'l', 'O', or 'I'
+    "E741",
+]
+

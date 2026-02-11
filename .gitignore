@@ -3,8 +3,17 @@
 .idea
 .empty
 .vscode
+.venv
+.ruff_cache
+
 
 # Python related files 
 **/__pycache__
+uv.lock
+dist
+*.egg-info
+
+**/profile_stats
+
 
 
