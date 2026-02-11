@@ -6,7 +6,6 @@
 .venv
 .ruff_cache
 
-
 # Python related files 
 **/__pycache__
 uv.lock
