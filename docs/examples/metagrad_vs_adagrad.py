@@ -2,6 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.optim import Optimizer, Adagrad
+from metagrad import CoordinateMetaGrad
 
 class CustomSGD(Optimizer):
     def __init__(self, params, lr=0.01, momentum=0.5):
@@ -96,10 +97,10 @@ if __name__ == "__main__":
     model_custom = LinearModel(dim)
 
     optimizer_adagrad = Adagrad(model_adagrad.parameters(), lr=3e-4)
-    optimizer_custom = CustomSGD(model_custom.parameters(), lr=3e-4, momentum=0.1)
+    optimizer_custom = CoordinateMetaGrad(model_custom.parameters(), sigma=1.0, D_inf=10)
 
     # Train
     losses_adagrad = train_online(model_adagrad, optimizer_adagrad, data_stream, epochs=100)
     losses_custom = train_online(model_custom, optimizer_custom, data_stream, epochs=100)
 
-    plot_and_save(losses_adagrad, losses_custom)
+    plot_and_save(losses_adagrad, losses_custom, fname_prefix="plot_meta")
