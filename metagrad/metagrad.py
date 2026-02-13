@@ -13,12 +13,7 @@ class CoordinateMetaGrad(Optimizer):
     def _init_eta_grid(self):
         return [2 ** i for i in range(-15, 1)]
 
-    def _update_active_etas(self, state: Dict, B_t: float):
-        upper_bound = 1 / (2 * B_t)
-        # TODO: should the lower bound be checked?
-        state["eta_grid"] = [eta for eta in state["eta_grid"] if eta <= upper_bound]
-
-
+    @torch.no_grad()
     def step(self, closure=None):
         loss = None
         if closure is not None:
@@ -32,6 +27,7 @@ class CoordinateMetaGrad(Optimizer):
                     continue
 
                 grad = p.grad
+                print("grad", grad)
                 state = self.state[p]
                 if len(state) == 0:
                     state["step"] = 0
@@ -83,7 +79,9 @@ class CoordinateMetaGrad(Optimizer):
                 eta_min_denom = torch.clamp(state["B_sum"] + state["B_t"], min=1e-10)
                 eta_min = 1.0 / (2 * eta_min_denom)
 
-                state["active_etas"] = [eta for eta in self.eta_grid if (eta > eta_min and eta < eta_max)]
+                global_max = eta_max.max().item()
+                global_min = eta_min.min().item()
+                state["active_etas"] = [eta for eta in self.eta_grid if (eta > global_min and eta < global_max)]
 
                 for eta in state["active_etas"]:
                     if eta not in state["eta_weights"]:
@@ -113,7 +111,7 @@ class CoordinateMetaGrad(Optimizer):
 
                     diff = w_eta - p
                     linear_term = eta * diff * clipped_grad
-                    expert_losses[eta] + linear_term + linear_term ** 2
+                    expert_losses[eta] = linear_term + linear_term ** 2
 
                 
                 w_controller = weighted_pred / (weighted_sum + 1e-10)
@@ -136,7 +134,7 @@ class CoordinateMetaGrad(Optimizer):
                         
                     loss_val = expert_losses[eta]
                     state["eta_weights"][eta].mul_(torch.exp(-loss_val))
-                    total_weight.add_(state["eta_weight"])
+                    total_weight.add_(state["eta_weights"][eta])
 
                 for eta in state["active_etas"]:
                     if eta not in state["eta_weights"]:
@@ -144,6 +142,7 @@ class CoordinateMetaGrad(Optimizer):
 
                     state["eta_weights"][eta].div_(total_weight + 1e-10)
 
+                print(w_controller)
                 p.copy_(w_controller)
 
         return loss
