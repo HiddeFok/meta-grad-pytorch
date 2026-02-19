@@ -1,37 +1,9 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from torch.optim import Optimizer, Adagrad, Adam
+from torch.optim import Adagrad, Adam
 from metagrad import CoordinateMetaGrad
 from tqdm import trange
-
-
-class CustomSGD(Optimizer):
-    def __init__(self, params, lr=0.01, momentum=0.5):
-        defaults = dict(lr=lr, momentum=momentum)
-        super(CustomSGD, self).__init__(params, defaults)
-
-    @torch.no_grad()
-    def step(self):
-        for group in self.param_groups:
-            lr = group["lr"]
-            momentum = group["momentum"]
-
-            for p in group["params"]:
-                if p.grad is None:
-                    continue
-                state = self.state[p]
-
-                if len(state) == 0:
-                    state["momentum_avg"] = torch.zeros_like(
-                        p, memory_format=torch.preserve_format
-                    )
-
-                momentum_avg = state["momentum_avg"]
-                momentum_avg.mul_(momentum).add_(p.grad)
-
-                p.add_(momentum_avg, alpha=-lr)
-
 
 def quadratic_loss(x, target):
     return 0.5 * (x - target) ** 2
@@ -41,9 +13,10 @@ def generate_data_stream(n_samples=1000, dim=10):
     np.random.seed(42)
     true_param = np.random.uniform(-5, 5, size=dim)
     print("True parameter: ", true_param)
-    x_train = np.random.randn(n_samples, dim)
+    x_train = np.random.randn(n_samples, dim) * 3
     
-    targets = x_train @ true_param
+    noise = np.random.randn(n_samples)
+    targets = x_train @ true_param + noise
     return torch.tensor(x_train, dtype=torch.float32), torch.tensor(targets, dtype=torch.float32)
 
 

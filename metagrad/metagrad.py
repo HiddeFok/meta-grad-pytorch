@@ -93,11 +93,12 @@ class CoordinateMetaGrad(Optimizer):
 
                 eta_max_denom = torch.clamp(state["B_t"], min=1e-10)
                 eta_max = 1.0 / (2.0 * eta_max_denom)
-                eta_max = eta_max.unsqueeze(1)
+                eta_max = eta_max.unsqueeze(-1)
                 eta_min_denom = torch.clamp(state["B_sum"] + state["B_t"], min=1e-10)
                 eta_min = 1.0 / (2 * eta_min_denom)
-                eta_min = eta_min.unsqueeze(1)
-
+                eta_min = eta_min.unsqueeze(-1)
+                print(self.eta_grid.shape)
+                print(eta_min.shape)
                 state["active_etas"] = torch.logical_and(
                     self.eta_grid > eta_min, self.eta_grid < eta_max
                 )
