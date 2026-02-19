@@ -5,6 +5,7 @@ from torch.optim import Adagrad, Adam
 from metagrad import CoordinateMetaGrad
 from tqdm import trange
 
+
 def quadratic_loss(x, target):
     return 0.5 * (x - target) ** 2
 
@@ -14,10 +15,12 @@ def generate_data_stream(n_samples=1000, dim=10):
     true_param = np.random.uniform(-5, 5, size=dim)
     print("True parameter: ", true_param)
     x_train = np.random.randn(n_samples, dim) * 3
-    
+
     noise = np.random.randn(n_samples)
     targets = x_train @ true_param + noise
-    return torch.tensor(x_train, dtype=torch.float32), torch.tensor(targets, dtype=torch.float32)
+    return torch.tensor(x_train, dtype=torch.float32), torch.tensor(
+        targets, dtype=torch.float32
+    )
 
 
 class LinearModel(torch.nn.Module):
@@ -46,7 +49,7 @@ def train_online(model, optimizer, data_stream, epochs=1):
         losses.append(epoch_loss / len(data_stream))
 
     print("Found parameter", list(model.parameters()))
-    
+
     return losses, all_losses
 
 
@@ -100,9 +103,7 @@ if __name__ == "__main__":
     optimizer_metagrad = CoordinateMetaGrad(
         model_metagrad.parameters(), sigma=1.0, D_inf=10
     )
-    optimizer_adam = Adam(
-        model_adam.parameters(), lr=0.1
-    )
+    optimizer_adam = Adam(model_adam.parameters(), lr=0.1)
 
     # Train
     print("Train AdaGrad")
@@ -110,10 +111,12 @@ if __name__ == "__main__":
         model_adagrad, optimizer_adagrad, data_stream, epochs=10
     )
     print("Train MetaGrad")
-    losses_metagrad = train_online(model_metagrad, optimizer_metagrad, data_stream, epochs=10)
+    losses_metagrad = train_online(
+        model_metagrad, optimizer_metagrad, data_stream, epochs=10
+    )
     print("Train Adam")
     losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=10)
 
-
-
-    plot_and_save(losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta")
+    plot_and_save(
+        losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta"
+    )

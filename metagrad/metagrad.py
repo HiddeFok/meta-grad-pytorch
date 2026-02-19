@@ -97,8 +97,6 @@ class CoordinateMetaGrad(Optimizer):
                 eta_min_denom = torch.clamp(state["B_sum"] + state["B_t"], min=1e-10)
                 eta_min = 1.0 / (2 * eta_min_denom)
                 eta_min = eta_min.unsqueeze(-1)
-                print(self.eta_grid.shape)
-                print(eta_min.shape)
                 state["active_etas"] = torch.logical_and(
                     self.eta_grid > eta_min, self.eta_grid < eta_max
                 )
@@ -121,23 +119,23 @@ class CoordinateMetaGrad(Optimizer):
 
                 clipped_grad = (state["B_t-1"] / state["B_t"] + 1e-10) * grad
 
-                diff = w_eta - p.unsqueeze(1)
-                linear_term = self.eta_grid * diff * clipped_grad.unsqueeze(1)
+                diff = w_eta - p.unsqueeze(-1)
+                linear_term = self.eta_grid * diff * clipped_grad.unsqueeze(-1)
                 expert_losses = linear_term + linear_term**2
 
                 state["eta_experts"]["lambda"].add_(
-                    2 * (grad * grad).unsqueeze(1) * (self.eta_grid * self.eta_grid)
+                    2 * (grad * grad).unsqueeze(-1) * (self.eta_grid * self.eta_grid)
                 )
                 state["eta_experts"]["w_hat"].add_(
                     -(
                         1
                         + 2
                         * self.eta_grid
-                        * (state["eta_experts"]["w_hat"] - w_controller.unsqueeze(1))
-                        * grad.unsqueeze(1)
+                        * (state["eta_experts"]["w_hat"] - w_controller.unsqueeze(-1))
+                        * grad.unsqueeze(-1)
                     )
                     * self.eta_grid
-                    * grad.unsqueeze(1)
+                    * grad.unsqueeze(-1)
                     / state["eta_experts"]["lambda"]
                 )
 
@@ -150,8 +148,8 @@ class CoordinateMetaGrad(Optimizer):
                 )
                 state["eta_exp_weights"].div_(
                     torch.where(
-                        any_active.unsqueeze(1),
-                        state["eta_exp_weights"].sum(axis=-1).unsqueeze(1) + 1e-10,
+                        any_active.unsqueeze(-1),
+                        state["eta_exp_weights"].sum(axis=-1).unsqueeze(-1) + 1e-10,
                         1
                     )
                 )
