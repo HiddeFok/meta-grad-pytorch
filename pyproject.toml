@@ -16,6 +16,7 @@ dependencies = [
     "torchvision>=0.24.1",
     "ruff>=0.15.0",
     "matplotlib>=3.10.8",
+    "tqdm>=4.67.3",
 ]
 
 [tool.uv.sources]

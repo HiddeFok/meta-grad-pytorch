@@ -1,5 +1,3 @@
 from metagrad.metagrad import CoordinateMetaGrad
 
-__all__ = [
-    CoordinateMetaGrad
-]
+__all__ = [CoordinateMetaGrad]
