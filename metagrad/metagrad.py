@@ -9,13 +9,12 @@ class CoordinateMetaGrad(Optimizer):
         defaults = dict(sigma=sigma, D_inf=D_inf)
         super(CoordinateMetaGrad, self).__init__(params, defaults)
 
-        self.grid_size = 15
+        self.grid_size = 20
         self.eta_grid = torch.tensor(self._init_eta_grid()).unsqueeze(0)
-        print(self.eta_grid)
-        print(self.eta_grid.shape)
+        self.grid_size = self.eta_grid.shape[1]
 
     def _init_eta_grid(self):
-        return [2**i for i in range(-self.grid_size, 0)]
+        return [2**i for i in range(-self.grid_size, 2)]
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -97,6 +96,7 @@ class CoordinateMetaGrad(Optimizer):
                 eta_min_denom = torch.clamp(state["B_sum"] + state["B_t"], min=1e-10)
                 eta_min = 1.0 / (2 * eta_min_denom)
                 eta_min = eta_min.unsqueeze(-1)
+
                 state["active_etas"] = torch.logical_and(
                     self.eta_grid > eta_min, self.eta_grid < eta_max
                 )
@@ -114,7 +114,8 @@ class CoordinateMetaGrad(Optimizer):
                 w_controller = torch.where(
                     any_active, 
                     weighted_pred / (weight_sum + 1e-10),
-                    1
+                    # 0
+                    torch.randn_like(p) / (p.numel() ** 2)
                 )
 
                 clipped_grad = (state["B_t-1"] / state["B_t"] + 1e-10) * grad
@@ -154,5 +155,6 @@ class CoordinateMetaGrad(Optimizer):
                     )
                 )
                 p.copy_(w_controller)
+                print(p)
 
         return loss
