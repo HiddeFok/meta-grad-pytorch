@@ -27,7 +27,7 @@ def test_coordinate_metagrad_linear_model():
     initial_output = model(X)
     initial_loss = criterion(initial_output, y)
 
-    for epoch in range(num_epochs):
+    for _ in range(num_epochs):
         optimizer.zero_grad()
         outputs = model(X)
         loss = criterion(outputs, y)

@@ -35,17 +35,19 @@ class LinearModel(torch.nn.Module):
 def train_online(model, optimizer, data_stream, epochs=1):
     losses = []
     all_losses = []
+    criterion = torch.nn.MSELoss()
     for epoch in trange(epochs):
         epoch_loss = 0
-        for x, target in zip(*data_stream):
-            optimizer.zero_grad()
-            # Simulate prediction and loss
-            pred = model(x)
-            loss = quadratic_loss(pred, target).sum()
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item()
-            all_losses.append(loss.item())
+        x, target = data_stream
+        optimizer.zero_grad()
+        # Simulate prediction and loss
+        pred = model(x)
+        # loss = quadratic_loss(pred, target).sum()
+        loss = criterion(pred, target)
+        loss.backward()
+        optimizer.step()
+        epoch_loss += loss.item()
+        all_losses.append(loss.item())
         losses.append(epoch_loss / len(data_stream))
 
     print("Found parameter", list(model.parameters()))
@@ -108,14 +110,14 @@ if __name__ == "__main__":
     # Train
     print("Train AdaGrad")
     losses_adagrad = train_online(
-        model_adagrad, optimizer_adagrad, data_stream, epochs=10
+        model_adagrad, optimizer_adagrad, data_stream, epochs=1000
     )
     print("Train MetaGrad")
     losses_metagrad = train_online(
-        model_metagrad, optimizer_metagrad, data_stream, epochs=10
+        model_metagrad, optimizer_metagrad, data_stream, epochs=1000
     )
     print("Train Adam")
-    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=10)
+    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=1000)
 
     plot_and_save(
         losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta"
