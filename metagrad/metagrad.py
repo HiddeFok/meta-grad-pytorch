@@ -114,8 +114,9 @@ class CoordinateMetaGrad(Optimizer):
                 w_controller = torch.where(
                     any_active, 
                     weighted_pred / (weight_sum + 1e-10),
+                    p
                     # 0
-                    torch.randn_like(p) / (p.numel() ** 2)
+                    # torch.randn_like(p) / (p.numel() ** 2)
                 )
 
                 clipped_grad = (state["B_t-1"] / state["B_t"] + 1e-10) * grad
