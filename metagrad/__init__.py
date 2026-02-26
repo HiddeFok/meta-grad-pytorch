@@ -1,3 +1,3 @@
-from metagrad.metagrad import CoordinateMetaGrad
+from metagrad.metagrad import CoordinateMetaGrad, FullMetaGrad
 
-__all__ = [CoordinateMetaGrad]
+__all__ = [CoordinateMetaGrad, FullMetaGrad]

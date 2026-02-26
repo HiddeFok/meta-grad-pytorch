@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from metagrad import CoordinateMetaGrad
 
+
 class LinearModel(nn.Module):
     def __init__(self, dim):
         super().__init__()
@@ -9,7 +10,7 @@ class LinearModel(nn.Module):
 
     def forward(self, x):
         return x @ self.weight
-    
+
 
 def test_coordinate_metagrad_linear_model():
     dim = 10
@@ -37,4 +38,6 @@ def test_coordinate_metagrad_linear_model():
     final_output = model(X)
     final_loss = criterion(final_output, y)
 
-    assert final_loss.item() < initial_loss.item(), "Loss did not  decrease during training"
+    assert final_loss.item() < initial_loss.item(), (
+        "Loss did not  decrease during training"
+    )
