@@ -23,11 +23,14 @@ class SimpleNN(torch.nn.Module):
         super().__init__()
         self.fc1 = torch.nn.Linear(dim, 64)
         self.fc2 = torch.nn.Linear(64, 64)
-        self.fc2 = torch.nn.Linear(64, 1)
+        self.fc3 = torch.nn.Linear(64, 64)
+        self.fc4 = torch.nn.Linear(64, 1)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
+        x = self.fc3(x)
+        x = self.fc4(x)
         return x
 
 
@@ -62,6 +65,7 @@ def plot_and_save(losses_1, losses_2, losses_3, fname_prefix="plot"):
     axs[0].plot(x_range_1, epoch_losses_1, label="AdaGrad", color="tab:blue")
     axs[0].plot(x_range_1, epoch_losses_2, label="MetaGrad", color="tab:red")
     axs[0].plot(x_range_1, epoch_losses_3, label="Adam", color="tab:purple")
+    axs[0].set_ylim((0, 0.7))
     axs[0].set_xlabel("Epoch")
     axs[0].set_ylabel("Average Loss")
     axs[0].set_title("Online Convex Optimization")
@@ -126,21 +130,23 @@ if __name__ == "__main__":
 
     optimizer_adagrad = Adagrad(model_adagrad.parameters(), lr=0.01)
     optimizer_metagrad = CoordinateMetaGrad(
-        model_metagrad.parameters(), sigma=1.0, D_inf=10
+        model_metagrad.parameters(), sigma=0.6, D_inf=7
     )
     optimizer_adam = Adam(model_adam.parameters(), lr=0.01)
-
     # Train
     print("Train AdaGrad")
     losses_adagrad = train_online(
-        model_adagrad, optimizer_adagrad, data_stream, epochs=1000
+        model_adagrad, optimizer_adagrad, data_stream, epochs=500
     )
     print("Train MetaGrad")
     losses_metagrad = train_online(
-        model_metagrad, optimizer_metagrad, data_stream, epochs=1000
+        model_metagrad, optimizer_metagrad, data_stream, epochs=500
     )
     print("Train Adam")
-    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=1000)
+    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=500)
+
+    print(max(p.max() for p in model_adam.parameters()))
+    print(min(p.min() for p in model_adam.parameters()))
 
     plot_and_save(
         losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta"

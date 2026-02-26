@@ -14,7 +14,7 @@ class CoordinateMetaGrad(Optimizer):
         self.grid_size = self.eta_grid.shape[1]
 
     def _init_eta_grid(self):
-        return [2**i for i in range(-self.grid_size, 2)]
+        return [2**i for i in range(-self.grid_size, 1)]
 
     @torch.no_grad()
     def step(self, closure=None):
@@ -50,9 +50,9 @@ class CoordinateMetaGrad(Optimizer):
                     )
 
                     state["eta_experts"] = {}
-                    state["eta_experts"]["w_hat"] = torch.zeros(
-                        (*p.shape, self.grid_size), device=p.device
-                    )
+                    state["eta_experts"]["w_hat"] = p.detach().unsqueeze(-1).expand(
+                        *p.shape, self.grid_size
+                    ).clone()
                     state["eta_experts"]["lambda"] = torch.ones(
                         (*p.shape, self.grid_size), device=p.device
                     ) / (sigma**2)
@@ -71,24 +71,6 @@ class CoordinateMetaGrad(Optimizer):
                 state["B_sum"].add_(
                     state["b_t"] * state["B_t-1"] / (state["B_t"] + 1e-10)
                 )
-                reset_mask = state["B_t"] > state["epoch_start_B"] * state["b_sum"]
-                # if reset_mask.any():
-                #     state["epoch_start_B"] = torch.where(
-                #         reset_mask,
-                #         state["B_t"],
-                #         state["epoch_start_B"]
-                #     )
-                #     state["b_sum"] = torch.where(
-                #         reset_mask,
-                #         torch.zeros_like(p),
-                #         state["b_sum"]
-                #     )
-                #     for eta in state["eta_weights"]:
-                #         state["eta_weights"][eta] = torch.where(
-                #             reset_mask,
-                #             torch.ones_like(p),
-                #             state["eta_weights"][eta]
-                #         )
 
                 eta_max_denom = torch.clamp(state["B_t"], min=1e-10)
                 eta_max = 1.0 / (2.0 * eta_max_denom)
@@ -100,6 +82,21 @@ class CoordinateMetaGrad(Optimizer):
                 state["active_etas"] = torch.logical_and(
                     self.eta_grid > eta_min, self.eta_grid < eta_max
                 )
+
+                reset_mask = state["B_t"] > state["epoch_start_B"] * state["b_sum"]
+                if reset_mask.any():
+                    state["epoch_start_B"] = torch.where(
+                        reset_mask,
+                        state["B_t"],
+                        state["epoch_start_B"]
+                    )
+                    state["eta_exp_weights"] = torch.where(
+                        torch.logical_and(state["active_etas"], reset_mask.unsqueeze(-1)), 
+                        torch.ones(
+                        size=(*p.shape, self.grid_size), device=p.device
+                    ),
+                        state["eta_exp_weights"]
+                    )
 
                 any_active = (state["active_etas"].int().sum(axis=-1) > 0)
 
@@ -121,7 +118,7 @@ class CoordinateMetaGrad(Optimizer):
 
                 clipped_grad = (state["B_t-1"] / state["B_t"] + 1e-10) * grad
 
-                diff = w_eta - p.unsqueeze(-1)
+                diff = w_eta - w_controller.unsqueeze(-1)
                 linear_term = self.eta_grid * diff * clipped_grad.unsqueeze(-1)
                 expert_losses = linear_term + linear_term**2
 
@@ -156,6 +153,5 @@ class CoordinateMetaGrad(Optimizer):
                     )
                 )
                 p.copy_(w_controller)
-                print(p)
 
         return loss
