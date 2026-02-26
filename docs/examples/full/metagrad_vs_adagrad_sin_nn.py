@@ -21,12 +21,14 @@ def generate_data_stream(n_samples=1000):
 class SimpleNN(torch.nn.Module):
     def __init__(self, dim):
         super().__init__()
-        self.fc1 = torch.nn.Linear(dim, 64)
-        self.fc2 = torch.nn.Linear(64, 1)
+        self.fc1 = torch.nn.Linear(dim, 32)
+        self.fc2 = torch.nn.Linear(32, 32)
+        self.fc3 = torch.nn.Linear(32, 1)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
+        x = self.fc3(x)
         return x
 
 
@@ -126,7 +128,7 @@ if __name__ == "__main__":
 
     optimizer_adagrad = Adagrad(model_adagrad.parameters(), lr=0.01)
     optimizer_metagrad = FullMetaGrad(
-        model_metagrad.parameters(), sigma=0.6, D_inf=7
+        model_metagrad.parameters(), sigma=3, D_inf=5
     )
     optimizer_adam = Adam(model_adam.parameters(), lr=0.01)
     # Train

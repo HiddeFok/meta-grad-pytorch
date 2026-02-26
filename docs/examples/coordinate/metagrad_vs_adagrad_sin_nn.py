@@ -27,9 +27,9 @@ class SimpleNN(torch.nn.Module):
         self.fc4 = torch.nn.Linear(64, 1)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
+        x = F.tanh(self.fc3(x))
         x = self.fc4(x)
         return x
 
@@ -145,8 +145,6 @@ if __name__ == "__main__":
     print("Train Adam")
     losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=1000)
 
-    print(max(p.max() for p in model_adam.parameters()))
-    print(min(p.min() for p in model_adam.parameters()))
 
     plot_and_save(
         losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta"
