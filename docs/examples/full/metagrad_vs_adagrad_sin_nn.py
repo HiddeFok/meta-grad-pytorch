@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.optim import Adagrad, Adam
 import torch.nn.functional as F
-from metagrad import CoordinateMetaGrad
+from metagrad import FullMetaGrad
 from tqdm import trange
 
 
@@ -22,15 +22,11 @@ class SimpleNN(torch.nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.fc1 = torch.nn.Linear(dim, 64)
-        self.fc2 = torch.nn.Linear(64, 64)
-        self.fc3 = torch.nn.Linear(64, 64)
-        self.fc4 = torch.nn.Linear(64, 1)
+        self.fc2 = torch.nn.Linear(64, 1)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = self.fc2(x)
         return x
 
 
@@ -129,21 +125,21 @@ if __name__ == "__main__":
     model_adam = SimpleNN(dim)
 
     optimizer_adagrad = Adagrad(model_adagrad.parameters(), lr=0.01)
-    optimizer_metagrad = CoordinateMetaGrad(
-        model_metagrad.parameters(), sigma=0.7, D_inf=5
+    optimizer_metagrad = FullMetaGrad(
+        model_metagrad.parameters(), sigma=0.6, D_inf=7
     )
     optimizer_adam = Adam(model_adam.parameters(), lr=0.01)
     # Train
     print("Train AdaGrad")
     losses_adagrad = train_online(
-        model_adagrad, optimizer_adagrad, data_stream, epochs=1000
+        model_adagrad, optimizer_adagrad, data_stream, epochs=500
     )
     print("Train MetaGrad")
     losses_metagrad = train_online(
-        model_metagrad, optimizer_metagrad, data_stream, epochs=1000
+        model_metagrad, optimizer_metagrad, data_stream, epochs=500
     )
     print("Train Adam")
-    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=1000)
+    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=500)
 
     print(max(p.max() for p in model_adam.parameters()))
     print(min(p.min() for p in model_adam.parameters()))
