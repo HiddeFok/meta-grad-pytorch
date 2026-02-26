@@ -144,7 +144,7 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
                 state["eta_exp_weights"].div_(
                     torch.where(
                         any_active.unsqueeze(-1),
-                        state["eta_exp_weights"].sum(axis=-1).unsqueeze(-1) + 1e-10,
+                        (state["eta_exp_weights"] * state["active_etas"]).sum(axis=-1).unsqueeze(-1) + 1e-10,
                         1,
                     )
                 )
@@ -176,6 +176,7 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
 
         g = torch.cat(all_grads)  # shape (N,)
         N = g.shape[0]
+        K = self.eta_grid.shape[0]
         sigma = self.param_groups[0]["sigma"]
         D_inf = self.param_groups[0]["D_inf"]
 
@@ -191,7 +192,6 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
             state["b_sum"] = torch.tensor(0.0)
             state["B_sum"] = torch.tensor(0.0)
 
-            K = self.eta_grid.shape[0]
             state["Lambda"] = (torch.eye(N) / (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
             state["Sigma"] = (torch.eye(N) * (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
 
@@ -215,6 +215,7 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         eta_max = 1.0 / (2.0 * state["B_t"] + 1e-10)
         eta_min = 1.0 / (2.0 * (state["B_sum"] + state["B_t"]) + 1e-10)
         active = torch.logical_and(self.eta_grid > eta_min, self.eta_grid < eta_max)
+        print(active)
         reset_mask = state["B_t"] > state["epoch_start_B"] * state["b_sum"]
         if reset_mask:
             state["epoch_start_B"] = state["B_t"]
@@ -229,23 +230,25 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         weights = state["exp_weights"] * self.eta_grid * active  # (K,)
         weight_sum = weights.sum()
 
-        print(weight_sum)
-        if weight_sum > 1e-10:
-            w_controller = (weights.unsqueeze(0) * w_eta).sum(axis=-1) / weight_sum
+        if active.any():
+            if weight_sum > 1e-10:
+                w_controller = (weights.unsqueeze(0) * w_eta).sum(axis=-1) / weight_sum
+            else:
+                print("hey")
+                w_controller = w_flat
         else:
-            print("hey")
             w_controller = w_flat
 
         print(w_controller)
         ## Update experts with unclipped losses
 
         # TODO: Write tests to ensure that these shapes are correct and remain correct
-        Sigma_g = torch.einsum("ijk,j -> ik", state["Sigma"], g).clone()  # (N, K)
+        Sigma_g = torch.einsum("ijk,j -> ik", state["Sigma"], g)  # (N, K)
+        print(g)
 
-        # Sigma is a symmetric matrix
-        Sigma_g_g_Sigma = (
-            Sigma_g[:, None, :] * Sigma_g[None, :, :]
-        )  # (N, 1, K) * (1, N, K) -> (N, N, K)
+        # (N, 1, K) * (1, N, K) -> (N, N, K)
+        Sigma_g_g_Sigma = Sigma_g[:, None, :] * Sigma_g[None, :, :]
+
         g_Sigma_g = torch.einsum("i, ik -> k", g, Sigma_g)
 
         state["Sigma"].add_(
@@ -255,30 +258,31 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
             / (1 + 2 * (self.eta_grid**2) * g_Sigma_g)
             * active
         )
-
         state["Lambda"].add_(
             (2 * (self.eta_grid**2) * torch.outer(g, g).unsqueeze(-1)) * active
         )
+
         diff = w_eta - w_controller.unsqueeze(-1)  # (N, K) - (N, 1) -> (N, K)
-        Sigma_g = torch.einsum("ijk,j -> k", state["Sigma"], g)  # (N, K)
+        Sigma_g = torch.einsum("ijk,j -> ik", state["Sigma"], g)  # (N, K)
+        print("update")
         state["w_hat"].add_(
             -((1 + 2 * self.eta_grid * (diff.T @ g)) * self.eta_grid * Sigma_g) * active
         )
 
         ## Update exponential weights with clipped gradients
         clipped_grad = (state["B_t_prev"] / (state["B_t"] + 1e-10)) * g
+        print(clipped_grad)
         linear_term = self.eta_grid * (diff.T @ clipped_grad)
         expert_losses = linear_term + linear_term**2
-
+        print(expert_losses)
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
-
+        print(state["exp_weights"].shape)
         state["exp_weights"].div_(
             torch.where(
-                active, state["exp_weights"].sum(axis=-1).unsqueeze(-1) + 1e-10, 1
+                active, (state["exp_weights"] * active).sum(axis=-1).unsqueeze(-1) + 1e-10, 1
             )
         )
 
-        print(w_controller)
         # Write w_controller back to parameters
         offset = 0
         for p in all_params:
