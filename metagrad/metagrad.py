@@ -201,7 +201,8 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         state["step"] += 1
 
         ## Collecting gradient information ##
-        state["b_t"] = (D_inf + w_flat.norm()) * g.norm()
+        w_proj = torch.clamp(w_flat, -D_inf, D_inf)
+        state["b_t"] = (D_inf + w_proj.norm()) * g.norm()
         state["B_t_prev"] = state["B_t"].clone()
         state["B_t"] = torch.max(state["B_t"], state["b_t"])
 
@@ -215,7 +216,6 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         eta_max = 1.0 / (2.0 * state["B_t"] + 1e-10)
         eta_min = 1.0 / (2.0 * (state["B_sum"] + state["B_t"]) + 1e-10)
         active = torch.logical_and(self.eta_grid > eta_min, self.eta_grid < eta_max)
-        print(active)
         reset_mask = state["B_t"] > state["epoch_start_B"] * state["b_sum"]
         if reset_mask:
             state["epoch_start_B"] = state["B_t"]
@@ -239,13 +239,10 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         else:
             w_controller = w_flat
 
-        print(w_controller)
         ## Update experts with unclipped losses
 
         # TODO: Write tests to ensure that these shapes are correct and remain correct
         Sigma_g = torch.einsum("ijk,j -> ik", state["Sigma"], g)  # (N, K)
-        print(g)
-
         # (N, 1, K) * (1, N, K) -> (N, N, K)
         Sigma_g_g_Sigma = Sigma_g[:, None, :] * Sigma_g[None, :, :]
 
@@ -258,23 +255,23 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
             / (1 + 2 * (self.eta_grid**2) * g_Sigma_g)
             * active
         )
+        state["Sigma"] = (state["Sigma"] + state["Sigma"].transpose(0, 1)) / 2
         state["Lambda"].add_(
             (2 * (self.eta_grid**2) * torch.outer(g, g).unsqueeze(-1)) * active
         )
 
         diff = w_eta - w_controller.unsqueeze(-1)  # (N, K) - (N, 1) -> (N, K)
         Sigma_g = torch.einsum("ijk,j -> ik", state["Sigma"], g)  # (N, K)
-        print("update")
+
         state["w_hat"].add_(
             -((1 + 2 * self.eta_grid * (diff.T @ g)) * self.eta_grid * Sigma_g) * active
         )
 
         ## Update exponential weights with clipped gradients
         clipped_grad = (state["B_t_prev"] / (state["B_t"] + 1e-10)) * g
-        print(clipped_grad)
         linear_term = self.eta_grid * (diff.T @ clipped_grad)
         expert_losses = linear_term + linear_term**2
-        print(expert_losses)
+
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
         state["exp_weights"].div_(torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1)
         )
