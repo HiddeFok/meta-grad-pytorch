@@ -94,7 +94,7 @@ def plot_and_save(losses_1, losses_2, losses_3, fname_prefix="plot"):
 
 if __name__ == "__main__":
     # --- Experiment ---
-    dim = 4
+    dim = 10
     data_stream = generate_data_stream(dim=dim)
     # Initialize models and optimizers
     model_adagrad = LinearModel(dim)
@@ -108,14 +108,14 @@ if __name__ == "__main__":
     # Train
     print("Train AdaGrad")
     losses_adagrad = train_online(
-        model_adagrad, optimizer_adagrad, data_stream, epochs=10
+        model_adagrad, optimizer_adagrad, data_stream, epochs=1000
     )
     print("Train MetaGrad")
     losses_metagrad = train_online(
-        model_metagrad, optimizer_metagrad, data_stream, epochs=10
+        model_metagrad, optimizer_metagrad, data_stream, epochs=1000
     )
     print("Train Adam")
-    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=10)
+    losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=1000)
 
     plot_and_save(
         losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta"

@@ -209,7 +209,7 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
             state["epoch_start_B"] = state["B_t"]
 
         state["b_sum"].add_(state["b_t"] / (state["B_t"] + 1e-10))
-        state["B_sum"].add_(state["b_t"] * state["B_t"] / (state["B_t"] + 1e-10))
+        state["B_sum"].add_(state["b_t"] * state["B_t_prev"] / (state["B_t"] + 1e-10))
 
         ## Updating active etas and checking reset ##
         eta_max = 1.0 / (2.0 * state["B_t"] + 1e-10)
@@ -276,11 +276,7 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         expert_losses = linear_term + linear_term**2
         print(expert_losses)
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
-        print(state["exp_weights"].shape)
-        state["exp_weights"].div_(
-            torch.where(
-                active, (state["exp_weights"] * active).sum(axis=-1).unsqueeze(-1) + 1e-10, 1
-            )
+        state["exp_weights"].div_(torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1)
         )
 
         # Write w_controller back to parameters
