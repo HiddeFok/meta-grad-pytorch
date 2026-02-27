@@ -108,6 +108,29 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
             w_controller = w_flat
         return w_controller
 
+    def _tau_less_update(self, row_idx, K, g):
+        e = torch.zeros(self.k, K)
+        e[row_idx, :] = torch.ones(K)
+        S_g = torch.einsum("ijk,j -> ik", self.state["S"], g)
+        q = 2 * (self.eta_grid**2) * (S_g - 0.5 * (g @ g) * e)
+
+        H_q = torch.einsum("ijk,j -> ik", self.state["H"], q)
+        H_e = torch.einsum("ijk,jk-> ik", self.state["H"], e)
+        H_q_e_H = torch.einsum("ik,jk -> ijk", H_q, H_e )
+        e_H_q = torch.einsum("ik,i -> k", H_e, q)
+
+        H_tilde = self.state["H" ] - H_q_e_H /  (1 + e_H_q)
+
+        H_q = torch.einsum("ijk,j -> ik", H_tilde, q)
+        H_e = torch.einsum("ijk,jk-> ik", H_tilde, e)
+        H_q_e_H = torch.einsum("ik,jk -> ijk", H_e, H_q )
+        e_H_q = torch.einsum("ik,i -> k", H_q, e)
+
+        return self.state["H"] - H_q_e_H /  (1 + e_H_q)
+        
+
+    def _tau_more_update(self):
+
     def _update_experts(self, K, state, g, w_controller, active, D_inf):
         """Update sketched_expert (H, S) matrices and predictions (w_hat).
 
@@ -115,7 +138,14 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
         """
         tau = torch.remainder(state['epoch_counter'], self.m + 1)
         row_idx = tau + self.m
-        state["S"][tau] = g.unsqueeze(-1).repeat(1, K)
+        state["S"][tau, :, :] = g.unsqueeze(-1).repeat(1, K)
+
+        H_1 = self._tau_less_update(row_idx, K, g)
+        H_2 = self._tau_more_update()
+
+        state["H"] = torch.where(tau < self.m, H_1, H_2)
+
+    # TODO: FINISH THIS
 
     def _update_exp_weights(self, state, g, w_controller, active, D_inf):
         """Update exponential weights using clipped gradient losses.
@@ -131,7 +161,6 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
         state["exp_weights"].div_(torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1))
 
-    # TODO: FINISH THIS
 
     def _write_back_params(self, all_params, w_controller):
         """Write the flat controller vector back into parameter tensors."""
