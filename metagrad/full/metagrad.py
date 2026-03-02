@@ -3,6 +3,7 @@ from torch.optim import Optimizer
 
 from metagrad.metagrad import MetaGradMixin
 
+
 class FullMetaGradMixin(MetaGradMixin):
     def _init_state(self, state, N, K, w_flat, sigma):
         """Initialize optimizer state for the full-matrix case.
@@ -178,9 +179,6 @@ class FullMetaGrad(FullMetaGradMixin, Optimizer):
         self._update_experts(state, g, w_controller, active, D_inf)
         self._update_exp_weights(state, g, w_controller, active, D_inf)
         self._write_back_params(all_params, w_controller)
-
-
-
 
 
 class FullBlockMetagrad(FullMetaGradMixin, Optimizer):

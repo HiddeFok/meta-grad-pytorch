@@ -3,4 +3,10 @@ from metagrad.full.metagrad import FullMetaGrad, FullBlockMetagrad
 from metagrad.sketched.metagrad import SketchedMetaGrad, SketchedBlockMetaGrad
 
 
-__all__ = [CoordinateMetaGrad, FullMetaGrad, FullBlockMetagrad, SketchedMetaGrad, SketchedBlockMetaGrad]
+__all__ = [
+    CoordinateMetaGrad,
+    FullMetaGrad,
+    FullBlockMetagrad,
+    SketchedMetaGrad,
+    SketchedBlockMetaGrad,
+]

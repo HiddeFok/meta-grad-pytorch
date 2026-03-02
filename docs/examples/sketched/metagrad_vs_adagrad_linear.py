@@ -91,7 +91,9 @@ def plot_and_save(losses_1, losses_2, losses_3, losses_4, fname_prefix="plot"):
 
     axs[1].plot(regret_1, label="AdaGrad Regret", color="blue")
     axs[1].plot(regret_2, label="SketchMetaGrad (Full)", color="red")
-    axs[1].plot(regret_3, label="SketchMetaGrad (Block)", color="red", linestyle="dotted")
+    axs[1].plot(
+        regret_3, label="SketchMetaGrad (Block)", color="red", linestyle="dotted"
+    )
     axs[1].plot(regret_4, label="Adam", color="purple")
     axs[1].set_xlabel("Epoch")
     axs[1].set_ylabel("Cumulative Regret")

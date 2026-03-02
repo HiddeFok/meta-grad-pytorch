@@ -3,6 +3,7 @@ from torch.optim import Optimizer
 
 from metagrad.metagrad import MetaGradMixin
 
+
 class SketchedMetaGradMixin:
     def _init_state(self, state, N, K, w_flat, sigma):
         """Initialize optimizer state for the full-matrix case.
@@ -79,31 +80,31 @@ class SketchedMetaGradMixin:
             w_controller = w_flat
         return w_controller
 
-    def _tau_less_update(self, row_idx, K, g):
+    def _tau_less_update(self, state, row_idx, K, g):
         e = torch.zeros(self.k, K)
         e[row_idx, :] = torch.ones(K)
-        S_g = torch.einsum("ijk,j -> ik", self.state["S"], g)
+        S_g = torch.einsum("ijk,j -> ik", state["S"], g)
         q = 2 * (self.eta_grid**2) * (S_g - 0.5 * (g @ g) * e)
 
-        H_q = torch.einsum("ijk,jk -> ik", self.state["H"], q)
-        H_e = torch.einsum("ijk,jk-> ik", self.state["H"], e)
+        H_q = torch.einsum("ijk,jk -> ik", state["H"], q)
+        H_e = torch.einsum("ijk,jk-> ik", state["H"], e)
         H_q_e_H = torch.einsum("ik,jk -> ijk", H_q, H_e)
         e_H_q = torch.einsum("ik,ik -> k", H_e, q)
 
-        H_tilde = self.state["H"] - H_q_e_H / (1 + e_H_q)
+        H_tilde = state["H"] - H_q_e_H / (1 + e_H_q)
 
         H_q = torch.einsum("ijk,jk -> ik", H_tilde, q)
         H_e = torch.einsum("ijk,jk-> ik", H_tilde, e)
         H_q_e_H = torch.einsum("ik,jk -> ijk", H_e, H_q)
         e_H_q = torch.einsum("ik,ik -> k", H_q, e)
 
-        return self.state["S"], self.state["H"] - H_q_e_H / (1 + e_H_q)
+        return state["S"], state["H"] - H_q_e_H / (1 + e_H_q)
 
-    def _tau_more_update(self, N, K, state, sigma):
+    def _tau_more_update(self, state, N, K, sigma):
         _, sing_vals, V_t = torch.linalg.svd(
-            torch.movedim(self.state["S"], -1, 0), full_matrices=False
+            torch.movedim(state["S"], -1, 0), full_matrices=False
         )
-        sing_vals, V_t = sing_vals[:, :self.m], V_t[:, :self.m, :]
+        sing_vals, V_t = sing_vals[:, : self.m], V_t[:, : self.m, :]
         sing_vals = torch.movedim(sing_vals, 0, -1)  # (m, K)
         V_t = torch.movedim(V_t, 0, -1)
         sigma_m = sing_vals[self.m - 1, :]
@@ -131,8 +132,8 @@ class SketchedMetaGradMixin:
         row_idx = tau + self.m
         state["S"][row_idx, :, :] = g.unsqueeze(-1).repeat(1, K)
 
-        S_1, H_1 = self._tau_less_update(row_idx, K, g)
-        S_2, H_2 = self._tau_more_update(N, K, state, sigma)
+        S_1, H_1 = self._tau_less_update(state, row_idx, K, g)
+        S_2, H_2 = self._tau_more_update(state, N, K, sigma)
 
         state["H"] = torch.where(tau < self.m, H_1, H_2)
         state["S"] = torch.where(tau < self.m, S_1, S_2)
@@ -198,7 +199,6 @@ class SketchedMetaGrad(SketchedMetaGradMixin, Optimizer):
         w_flat = torch.cat([p.data.flatten() for p in all_params])
         return all_params, w_flat, g
 
-
     def _write_back_params(self, all_params, w_controller):
         """Write the flat controller vector back into parameter tensors."""
         offset = 0
@@ -218,7 +218,7 @@ class SketchedMetaGrad(SketchedMetaGradMixin, Optimizer):
 
         state = self.state
         if "step" not in state:
-            state = self._init_state(N, K, w_flat, sigma)
+            state = self._init_state(state, N, K, w_flat, sigma)
 
         state["step"] += 1
 
