@@ -3,6 +3,7 @@ from torch.optim import Optimizer
 
 from metagrad.metagrad import MetaGradMixin
 
+
 class FullMetaGrad(MetaGradMixin, Optimizer):
     def __init__(self, params, sigma: float = 1.0, D_inf: float = 1.0):
         defaults = dict(sigma=sigma, D_inf=D_inf)
@@ -146,7 +147,9 @@ class FullMetaGrad(MetaGradMixin, Optimizer):
         expert_losses = linear_term + linear_term**2
 
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
-        state["exp_weights"].div_(torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1))
+        state["exp_weights"].div_(
+            torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1)
+        )
 
     def _write_back_params(self, all_params, w_controller):
         """Write the flat controller vector back into parameter tensors."""
@@ -301,7 +304,9 @@ class FullBlockMetagrad(MetaGradMixin, Optimizer):
         expert_losses = linear_term + linear_term**2
 
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
-        state["exp_weights"].div_(torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1))
+        state["exp_weights"].div_(
+            torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1)
+        )
 
     def _write_back_params(self, p, w_controller):
         """Write the flat controller vector back into parameter tensors."""
@@ -313,13 +318,13 @@ class FullBlockMetagrad(MetaGradMixin, Optimizer):
         for group in self.param_groups:
             sigma = group["sigma"]
             D_inf = group["D_inf"]
-                
+
             K = len(self.eta_grid)
             for p in group["params"]:
                 if p.grad is None:
                     continue
-                
-                g = p.grad.flatten() 
+
+                g = p.grad.flatten()
                 w_flat = torch.clamp(p.data.flatten(), -D_inf, D_inf)
                 N = g.shape[0]
 

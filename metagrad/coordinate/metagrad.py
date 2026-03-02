@@ -30,10 +30,7 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
         )
         state["eta_experts"] = {}
         state["eta_experts"]["w_hat"] = (
-            p.detach()
-            .unsqueeze(-1)
-            .expand(*p.shape, self.grid_size)
-            .clone()
+            p.detach().unsqueeze(-1).expand(*p.shape, self.grid_size).clone()
         )
         state["eta_experts"]["lambda"] = torch.ones(
             (*p.shape, self.grid_size), device=p.device
@@ -54,9 +51,7 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
             state["epoch_start_B"] = state["B_t"]
 
         state["b_sum"].add_(state["b_t"] / (state["B_t"] + 1e-10))
-        state["B_sum"].add_(
-            state["b_t"] * state["B_t_prev"] / (state["B_t"] + 1e-10)
-        )
+        state["B_sum"].add_(state["b_t"] * state["B_t_prev"] / (state["B_t"] + 1e-10))
 
     def _update_active_etas(self, state):
         """Compute eta bounds and update the active eta mask.
@@ -81,9 +76,7 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
                 reset_mask, state["B_t"], state["epoch_start_B"]
             )
             state["eta_exp_weights"] = torch.where(
-                torch.logical_and(
-                    state["active_etas"], reset_mask.unsqueeze(-1)
-                ),
+                torch.logical_and(state["active_etas"], reset_mask.unsqueeze(-1)),
                 torch.ones(size=(*p.shape, self.grid_size), device=p.device),
                 state["eta_exp_weights"],
             )
@@ -141,7 +134,10 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
         state["eta_exp_weights"].div_(
             torch.where(
                 any_active.unsqueeze(-1),
-                (state["eta_exp_weights"] * state["active_etas"]).sum(axis=-1).unsqueeze(-1) + 1e-10,
+                (state["eta_exp_weights"] * state["active_etas"])
+                .sum(axis=-1)
+                .unsqueeze(-1)
+                + 1e-10,
                 1,
             )
         )

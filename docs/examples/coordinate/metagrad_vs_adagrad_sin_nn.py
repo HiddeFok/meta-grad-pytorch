@@ -145,7 +145,6 @@ if __name__ == "__main__":
     print("Train Adam")
     losses_adam = train_online(model_adam, optimizer_adam, data_stream, epochs=1000)
 
-
     plot_and_save(
         losses_adagrad, losses_metagrad, losses_adam, fname_prefix="plot_meta"
     )

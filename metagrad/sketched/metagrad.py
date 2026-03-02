@@ -3,6 +3,7 @@ from torch.optim import Optimizer
 
 from metagrad.metagrad import MetaGradMixin
 
+
 class SketchedMetaGrad(MetaGradMixin, Optimizer):
     def __init__(self, params, sigma: float = 1.0, D_inf=1.0, sketch_size=10):
         defaults = dict(sigma=sigma, D_inf=D_inf)
@@ -89,7 +90,7 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
                 active, torch.ones(K), state["exp_weights"]
             )
         return active
-            
+
     def _compute_controller(self, state, active, w_flat, D_inf):
         """Compute the weighted controller prediction from experts.
 
@@ -114,38 +115,72 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
         S_g = torch.einsum("ijk,j -> ik", self.state["S"], g)
         q = 2 * (self.eta_grid**2) * (S_g - 0.5 * (g @ g) * e)
 
-        H_q = torch.einsum("ijk,j -> ik", self.state["H"], q)
+        H_q = torch.einsum("ijk,jk -> ik", self.state["H"], q)
         H_e = torch.einsum("ijk,jk-> ik", self.state["H"], e)
-        H_q_e_H = torch.einsum("ik,jk -> ijk", H_q, H_e )
-        e_H_q = torch.einsum("ik,i -> k", H_e, q)
+        H_q_e_H = torch.einsum("ik,jk -> ijk", H_q, H_e)
+        e_H_q = torch.einsum("ik,ik -> k", H_e, q)
 
-        H_tilde = self.state["H" ] - H_q_e_H /  (1 + e_H_q)
+        H_tilde = self.state["H"] - H_q_e_H / (1 + e_H_q)
 
-        H_q = torch.einsum("ijk,j -> ik", H_tilde, q)
+        H_q = torch.einsum("ijk,jk -> ik", H_tilde, q)
         H_e = torch.einsum("ijk,jk-> ik", H_tilde, e)
-        H_q_e_H = torch.einsum("ik,jk -> ijk", H_e, H_q )
-        e_H_q = torch.einsum("ik,i -> k", H_q, e)
+        H_q_e_H = torch.einsum("ik,jk -> ijk", H_e, H_q)
+        e_H_q = torch.einsum("ik,ik -> k", H_q, e)
 
-        return self.state["H"] - H_q_e_H /  (1 + e_H_q)
-        
+        return self.state["S"], self.state["H"] - H_q_e_H / (1 + e_H_q)
 
-    def _tau_more_update(self):
+    def _tau_more_update(self, N, K, sigma):
+        _, S, V_t = torch.linalg.svd(
+            torch.movedim(self.state["S"], -1, 0), full_matrices=False
+        )
+        S, V_t = S[:, : self.m], V_t[:, : self.m, :]
+        S = torch.movedim(S, 0, -1)  # (m, K)
+        V_t = torch.movedim(V_t, 0, -1)
+        sigma_m = S[self.m - 1, :]
 
-    def _update_experts(self, K, state, g, w_controller, active, D_inf):
+        S_top_rows = torch.clamp(S**2 - sigma_m**2, min=0.0).sqrt()
+        S_top_rows = S_top_rows.unsqueeze(1) * V_t
+        S_new = torch.zeros(self.k, N, K)
+        S_new[: self.m, :, :] = S_top_rows
+
+        H_top_rows = 1 / (
+            sigma**2 + 2 * self.eta_grid**2 * (S**2 - sigma_m**2)
+        )  # (m, K)
+        H_new = torch.ones(self.m, K) * sigma**2  # (m,  K)
+        H_new = torch.cat((H_top_rows, H_new), dim=0)  # (2m, K)
+        H_new = torch.diag_embed(H_new.T).permute(1, 2, 0)  # (2m, 2m, K)
+        return S_new, H_new
+
+    def _update_experts(self, N, K, state, g, sigma, w_controller, active, D_inf):
         """Update sketched_expert (H, S) matrices and predictions (w_hat).
 
         Modifies state in-place.
         """
-        tau = torch.remainder(state['epoch_counter'], self.m + 1)
+        tau = torch.remainder(state["epoch_counter"], self.m)
         row_idx = tau + self.m
         state["S"][tau, :, :] = g.unsqueeze(-1).repeat(1, K)
 
-        H_1 = self._tau_less_update(row_idx, K, g)
-        H_2 = self._tau_more_update()
+        S_1, H_1 = self._tau_less_update(row_idx, K, g)
+        S_2, H_2 = self._tau_more_update(N, K, sigma)
 
-        state["H"] = torch.where(tau < self.m, H_1, H_2)
+        state["H"] = torch.where(torch.logical_and(tau < self.m, active), H_1, H_2)
+        state["S"] = torch.where(torch.logical_and(tau < self.m, active), S_1, S_2)
 
-    # TODO: FINISH THIS
+        state["epoch_counter"].add_(torch.where(active, 1, 0))
+
+        w_eta = torch.clamp(state["w_hat"], -D_inf, D_inf)
+        diff = w_eta - w_controller.unsqueeze(-1)
+
+        g_eta_pre = 1 + 2 * self.eta_grid * (diff.T @ g)
+        print(g_eta_pre.shape)
+        g_eta = g_eta_pre * self.eta_grid * g.unsqueeze(-1)  # (N, K)
+
+        # S: (2m, N, K)
+        # H: (2m, 2m, K)
+        S_g = torch.einsum("ijk,jk->ik", state["S"], g_eta)  # (2m, K)
+        H_S_g = torch.einsum("ijk,jk->ik", state["H"], S_g)  # (2m, K)
+        St_H_S_g = torch.einsum("ijk,ik->jk", state["S"], H_S_g)  # (N, K)
+        state["w_hat"].add(-(sigma**2) * (g_eta - 2 * self.eta_grid**2 * St_H_S_g))
 
     def _update_exp_weights(self, state, g, w_controller, active, D_inf):
         """Update exponential weights using clipped gradient losses.
@@ -159,8 +194,9 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
         expert_losses = linear_term + linear_term**2
 
         state["exp_weights"].mul_(torch.where(active, torch.exp(-expert_losses), 1))
-        state["exp_weights"].div_(torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1))
-
+        state["exp_weights"].div_(
+            torch.where(active, (state["exp_weights"] * active).sum() + 1e-10, 1)
+        )
 
     def _write_back_params(self, all_params, w_controller):
         """Write the flat controller vector back into parameter tensors."""
@@ -170,17 +206,16 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
             p.data.copy_(w_controller[offset : offset + numel].view(p.shape))
             offset += numel
 
-
     @torch.no_grad()
     def step(self, closure=None):
         all_params, w_flat, g = self._flatten_params_and_grads()
         N = g.shape[0]
 
-        sigma = self.param_groups[0]['sigma']
-        D_inf = self.param_groups[0]['D_inf']
+        sigma = self.param_groups[0]["sigma"]
+        D_inf = self.param_groups[0]["D_inf"]
         K = self.grid_size
 
-        state = self.stata
+        state = self.state
         if "step" not in state:
             state = self._init_state(N, K, w_flat, sigma)
 
@@ -189,6 +224,6 @@ class SketchedMetaGrad(MetaGradMixin, Optimizer):
         self._update_gradient_info(state, w_flat, g, D_inf)
         active = self._update_active_etas_and_reset(state)
         w_controller = self._compute_controller(state, active, w_flat, D_inf)
-        self._update_experts(N, K, state, g, w_controller, active, D_inf)
+        self._update_experts(N, K, state, g, sigma, w_controller, active, D_inf)
         self._update_exp_weights(state, g, w_controller, active, D_inf)
         self._write_back_params(all_params, w_controller)

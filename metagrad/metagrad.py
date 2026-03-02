@@ -8,4 +8,3 @@ class MetaGradMixin:
 
     def _init_eta_grid(self):
         return [2**i for i in range(-self.grid_size, 1)]
-
