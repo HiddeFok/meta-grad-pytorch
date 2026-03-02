@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from torch.optim import Adagrad, Adam
-from metagrad import SketchedMetaGrad, FullBlockMetagrad
+from metagrad import SketchedMetaGrad, SketchedBlockMetaGrad
 from tqdm import trange
 
 
@@ -71,7 +71,7 @@ def plot_and_save(losses_1, losses_2, losses_3, losses_4, fname_prefix="plot"):
     axs[0].plot(
         x_range_1,
         epoch_losses_3,
-        label="MetaGrad (Block)",
+        label="SketchMetaGrad (Block)",
         color="red",
         linestyle="dotted",
     )
@@ -91,7 +91,7 @@ def plot_and_save(losses_1, losses_2, losses_3, losses_4, fname_prefix="plot"):
 
     axs[1].plot(regret_1, label="AdaGrad Regret", color="blue")
     axs[1].plot(regret_2, label="SketchMetaGrad (Full)", color="red")
-    axs[1].plot(regret_3, label="MetaGrad (Block)", color="red", linestyle="dotted")
+    axs[1].plot(regret_3, label="SketchMetaGrad (Block)", color="red", linestyle="dotted")
     axs[1].plot(regret_4, label="Adam", color="purple")
     axs[1].set_xlabel("Epoch")
     axs[1].set_ylabel("Cumulative Regret")
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     dim = 10
     data_stream = generate_data_stream(dim=dim)
 
-    EPOCHS = 10
+    EPOCHS = 1000
 
     # Initialize models and optimizers
     model_adagrad = LinearModel(dim)
@@ -119,8 +119,8 @@ if __name__ == "__main__":
     optimizer_full_metagrad = SketchedMetaGrad(
         model_full_metagrad.parameters(), sigma=2, D_inf=5, sketch_size=5
     )
-    optimizer_block_metagrad = FullBlockMetagrad(
-        model_block_metagrad.parameters(), sigma=2.0, D_inf=5
+    optimizer_block_metagrad = SketchedBlockMetaGrad(
+        model_block_metagrad.parameters(), sigma=2.0, D_inf=5, sketch_size=5
     )
     optimizer_adam = Adam(model_adam.parameters(), lr=0.1)
 
@@ -129,10 +129,11 @@ if __name__ == "__main__":
     losses_adagrad = train_online(
         model_adagrad, optimizer_adagrad, data_stream, epochs=EPOCHS
     )
-    print("Train MetaGrad")
+    print("Train SketchMG")
     losses_full_metagrad = train_online(
         model_full_metagrad, optimizer_full_metagrad, data_stream, epochs=EPOCHS
     )
+    print("Train blockMG")
     losses_block_metagrad = train_online(
         model_block_metagrad, optimizer_block_metagrad, data_stream, epochs=EPOCHS
     )
