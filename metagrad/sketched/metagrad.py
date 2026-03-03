@@ -87,13 +87,13 @@ class SketchedMetaGradMixin:
         q = 2 * (self.eta_grid**2) * (S_g - 0.5 * (g @ g) * e)
 
         H_q = torch.einsum("ijk,jk -> ik", state["H"], q)
-        H_e = torch.einsum("ijk,jk-> ik", state["H"], e)
+        H_e = torch.einsum("ijk,ik-> jk", state["H"], e)
         H_q_e_H = torch.einsum("ik,jk -> ijk", H_q, H_e)
         e_H_q = torch.einsum("ik,ik -> k", H_e, q)
 
         H_tilde = state["H"] - H_q_e_H / (1 + e_H_q)
 
-        H_q = torch.einsum("ijk,jk -> ik", H_tilde, q)
+        H_q = torch.einsum("ijk,ik -> jk", H_tilde, q)
         H_e = torch.einsum("ijk,jk-> ik", H_tilde, e)
         H_q_e_H = torch.einsum("ik,jk -> ijk", H_e, H_q)
         e_H_q = torch.einsum("ik,ik -> k", H_q, e)
@@ -104,9 +104,10 @@ class SketchedMetaGradMixin:
         _, sing_vals, V_t = torch.linalg.svd(
             torch.movedim(state["S"], -1, 0), full_matrices=False
         )
-        sing_vals, V_t = sing_vals[:, : self.m], V_t[:, : self.m, :]
+        sing_vals, V_t = sing_vals[:, :self.m], V_t[:, : self.m, :]
         sing_vals = torch.movedim(sing_vals, 0, -1)  # (m, K)
         V_t = torch.movedim(V_t, 0, -1)
+        print(sing_vals.shape)
         sigma_m = sing_vals[self.m - 1, :]
 
         S_top_rows = torch.clamp(sing_vals**2 - sigma_m**2, min=0.0).sqrt()
@@ -128,8 +129,8 @@ class SketchedMetaGradMixin:
 
         Modifies state in-place.
         """
-        tau = torch.remainder(state["epoch_counter"], self.m)
-        row_idx = tau + self.m
+        tau = torch.remainder(state["epoch_counter"], self.m + 1)
+        row_idx = tau + self.m - 1
         state["S"][row_idx, :, :] = g.unsqueeze(-1).repeat(1, K)
 
         S_1, H_1 = self._tau_less_update(state, row_idx, K, g)

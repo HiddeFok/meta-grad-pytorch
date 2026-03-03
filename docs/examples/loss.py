@@ -37,6 +37,7 @@ from metagrad import (
     SketchedMetaGrad, 
     SketchedBlockMetaGrad
 )
+from parameterfree import KT, COCOB
 
 optimizers = {
     "AdaGrad": (Adagrad, {"lr": 0.1}),
@@ -44,8 +45,10 @@ optimizers = {
     "cMetaGrad": (CoordinateMetaGrad, {"sigma": 3.0, "D_inf": 5}),
     "MetaGrad (Full)": (FullMetaGrad, {"sigma": 3.0, "D_inf": 5}),
     "MetaGrad (Block)": (FullBlockMetagrad, {"sigma": 3.0, "D_inf": 5}),
-    # "sMetaGrad (Full)":(SketchedMetaGrad, {"sigma": 3.0, "D_inf": 5, "sketch_size": 5}),
-    # "sMetaGrad (Block)":(SketchedBlockMetaGrad, {"sigma": 3.0, "D_inf": 5, "sketch_size": 5})
+    "sMetaGrad (Full)":(SketchedMetaGrad, {"sigma": 3.0, "D_inf": 5, "sketch_size": 10}),
+    "sMetaGrad (Block)":(SketchedBlockMetaGrad, {"sigma": 3.0, "D_inf": 5, "sketch_size": 5}),
+    "KT":(KT, {}),
+    "COCOB":(COCOB, {}),
 }
 
 plot_settings = {
@@ -54,8 +57,10 @@ plot_settings = {
     "cMetaGrad": {"color": COLOURS[2]},
     "MetaGrad (Full)": {"color": COLOURS[3]},
     "MetaGrad (Block)": {"color": COLOURS[3], "linestyle": LINESTYLES[1]},
-    # "sMetaGrad (Full)": {"color": COLOURS[4]},
+    "sMetaGrad (Full)": {"color": COLOURS[5]},
     # "sMetaGrad (Block)": {"color": COLOURS[4], "linestyle": LINESTYLES[1]},
+    "KT": {"color": COLOURS[6]},
+    "COCOB": {"color": COLOURS[6], "linestyle": LINESTYLES[1]},
 }
 
 def generate_linear(n_samples=1000, dim=10):
@@ -132,10 +137,16 @@ def plot_and_save(models, losses, fname_prefix="linear"):
 
         regret = np.cumsum(losses[model])
         axs[1].plot(regret, label=model, **models[model])
+        if model == "Adam":
+            max_loss = max(losses[model])
 
     axs[0].set_xlabel("Step (T)")
     axs[0].set_ylabel("MSE")
-    axs[0].set_title("Linear regression, multiple optimizers")
+    if fname_prefix == "sin":
+        axs[0].set_ylim((0, 2))
+    else:
+        axs[0].set_ylim((0, 1.5 * max_loss))
+    axs[0].set_title(f"{fname_prefix} regression, multiple optimizers")
     axs[0].set_facecolor(FACECOLOUR)
     axs[0].grid(color="white")
 
@@ -149,11 +160,11 @@ def plot_and_save(models, losses, fname_prefix="linear"):
 
 
 if __name__ == "__main__":
-    set_seed(seed=123)
+    set_seed(seed=42)
 
-    DIM = 30
-    EPOCHS = 500
-    N_SAMPLES = 1000
+    DIM = 50
+    EPOCHS = 10
+    N_SAMPLES = 10000
 
     linear_data = generate_linear(n_samples=N_SAMPLES, dim=DIM)
     sin_data = generate_sin(n_samples=N_SAMPLES)
@@ -168,11 +179,11 @@ if __name__ == "__main__":
             lin_model, optimizer, linear_data, epochs=EPOCHS
         )
 
-        lin_model = SimpleNN(dim=1)
-        optimizer = optimizers[opt][0](lin_model.parameters(), **optimizers[opt][1])
+        nn_model = SimpleNN(dim=1)
+        optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
 
         sin_losses[opt] = train_online(
-            lin_model, optimizer, sin_data, epochs=EPOCHS
+            nn_model, optimizer, sin_data, epochs=EPOCHS
         )
 
     plot_and_save(models=plot_settings, losses=linear_losses)

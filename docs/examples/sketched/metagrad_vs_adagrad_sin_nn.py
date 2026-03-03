@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch.optim import Adagrad, Adam
 import torch.nn.functional as F
-from metagrad import FullMetaGrad, FullBlockMetagrad
+from metagrad import SketchedMetaGrad, SketchedBlockMetaGrad
 from tqdm import trange
 
 
@@ -148,11 +148,11 @@ if __name__ == "__main__":
     model_adam = SimpleNN(dim)
 
     optimizer_adagrad = Adagrad(model_adagrad.parameters(), lr=0.01)
-    optimizer_metagrad_full = FullMetaGrad(
-        model_metagrad_full.parameters(), sigma=3, D_inf=5
+    optimizer_metagrad_full = SketchedMetaGrad(
+        model_metagrad_full.parameters(), sigma=3, D_inf=5, sketch_size=10
     )
-    optimizer_metagrad_block = FullBlockMetagrad(
-        model_metagrad_block.parameters(), sigma=3, D_inf=5
+    optimizer_metagrad_block = SketchedBlockMetaGrad(
+        model_metagrad_block.parameters(), sigma=3, D_inf=5, sketch_size=10
     )
     optimizer_adam = Adam(model_adam.parameters(), lr=0.01)
     # Train
@@ -173,14 +173,14 @@ if __name__ == "__main__":
     plot_and_save(
         losses_adagrad,
         losses_metagrad_full,
-        losses_metagrad_block,
+        losses_metagrad_full,
         losses_adam,
         fname_prefix="plot_meta",
     )
     plot_predictions(
         model_adagrad,
         model_metagrad_full,
-        model_metagrad_block,
+        model_metagrad_full,
         model_adam,
         data_stream[0],
         data_stream[1],

@@ -19,6 +19,7 @@ dependencies = [
     "tqdm>=4.67.3",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "parameterfree>=0.0.1",
 ]
 
 [tool.uv.sources]
