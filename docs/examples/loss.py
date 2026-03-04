@@ -41,7 +41,7 @@ optimizers = {
     "MetaGrad (Block)": (FullBlockMetagrad, {"sigma": 3.0, "D_inf": 5}),
     "sMetaGrad (Full)": (
         SketchedMetaGrad,
-        {"sigma": 3.0, "D_inf": 5, "sketch_size": 10},
+        {"sigma": 3.0, "D_inf": 5, "sketch_size": 5},
     ),
     "sMetaGrad (Block)": (
         SketchedBlockMetaGrad,
@@ -62,6 +62,10 @@ plot_settings = {
     "KT": {"color": COLOURS[6]},
     "COCOB": {"color": COLOURS[6], "linestyle": LINESTYLES[1]},
 }
+
+# Printing settings
+OPT_LENGTH = 20
+key_spacing = [" "*(OPT_LENGTH - len(key)) for key in optimizers]
 
 
 def generate_linear(n_samples=1000, dim=10):
@@ -160,13 +164,20 @@ def plot_and_save(models, losses, fname_prefix="linear"):
     axs[1].legend()
 
     fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers.pdf", bbox_inches="tight")
+    
+    axs[0].set_yscale("log")
+    if fname_prefix == "sin":
+        axs[0].set_ylim((1e-2, 2))
+    else:
+        axs[0].set_ylim((1e-2, 1.5 * max_loss))
+    fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers_log.pdf", bbox_inches="tight")
 
 
 if __name__ == "__main__":
     set_seed(seed=42)
 
     DIM = 50
-    EPOCHS = 10
+    EPOCHS = 1000
     N_SAMPLES = 10000
 
     linear_data = generate_linear(n_samples=N_SAMPLES, dim=DIM)
@@ -174,7 +185,9 @@ if __name__ == "__main__":
 
     linear_losses = {}
     sin_losses = {}
-    for opt in optimizers:
+
+    print("Running model experiments...")
+    for i, opt in enumerate(optimizers):
         lin_model = LinearModel(DIM)
         optimizer = optimizers[opt][0](lin_model.parameters(), **optimizers[opt][1])
 
@@ -186,6 +199,9 @@ if __name__ == "__main__":
         optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
 
         sin_losses[opt] = train_online(nn_model, optimizer, sin_data, epochs=EPOCHS)
+
+        print(f"  {opt}:{key_spacing[i]}{linear_losses[opt][-1]:.4f}")
+        print(f"  {opt}:{key_spacing[i]}{sin_losses[opt][-1]:.4f}")
 
     plot_and_save(models=plot_settings, losses=linear_losses)
     plot_and_save(models=plot_settings, losses=sin_losses, fname_prefix="sin")
