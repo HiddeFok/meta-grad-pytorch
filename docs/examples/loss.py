@@ -58,7 +58,7 @@ plot_settings = {
     "MetaGrad (Full)": {"color": COLOURS[3]},
     "MetaGrad (Block)": {"color": COLOURS[3], "linestyle": LINESTYLES[1]},
     "sMetaGrad (Full)": {"color": COLOURS[5]},
-    # "sMetaGrad (Block)": {"color": COLOURS[4], "linestyle": LINESTYLES[1]},
+    "sMetaGrad (Block)": {"color": COLOURS[4], "linestyle": LINESTYLES[1]},
     "KT": {"color": COLOURS[6]},
     "COCOB": {"color": COLOURS[6], "linestyle": LINESTYLES[1]},
 }

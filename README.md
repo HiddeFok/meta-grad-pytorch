@@ -1,4 +1,6 @@
 ![code coverage](https://gist.github.com/HiddeFok/be967539e481ae6bb8bb785c4cac289e/raw/coverage_badge.svg)
+![License](https://img.shields.io/badge/license-GPLv3-green.svg?style=flat)
+![python](https://img.shields.io/badge/python-3.12-blue?style=flat&logo=python)
 
 
 # PyTorch implementation of MetaGrad
