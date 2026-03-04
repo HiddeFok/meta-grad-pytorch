@@ -1,4 +1,4 @@
-![code coverage](https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/refs/heads/coverage-badge/coverage_badge.svg?token=GHSAT0AAAAAADUYEUGRSETMA2DPHBU77PFO2NICICA)
+![code coverage](https://gist.github.com/HiddeFok/be967539e481ae6bb8bb785c4cac289e/coverage_badge.svg)
 
 
 # PyTorch implementation of MetaGrad
@@ -75,3 +75,7 @@ This  completely erases any benefit PyTorch provides.
 
 The standard workaround is to have a hybrid between a coordinate-wise version and full version, 
 by performing the full version for each version. 
+
+
+https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/refs/heads/coverage-badge/coverage_badge.svg?token=GHSAT0AAAAAADUYEUGQZDIZPVU7PAGAHVJS2NICOTQ
+https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/refs/heads/coverage-badge/coverage_badge.svg?token=GHSAT0AAAAAADUYEUGRSETMA2DPHBU77PFO2NICICA

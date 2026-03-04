@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  test-and-export:
 
     runs-on: ubuntu-latest
 
@@ -33,11 +33,13 @@ jobs:
     - name: Coverage Badge
       run: |
         genbadge coverage -n "pytest" -i ./coverage.xml -o ./coverage/coverage_badge.svg
-    - name: Publish coverage report to coverage-badge branch
-      uses: JamesIves/github-pages-deploy-action@v4
+    - name: Export Coverage Badge 
+      uses: exuanbo/actions-deploy-gist@v1
       with:
-        branch: coverage-badge
-        folder: coverage
+        token: ${{ secrets.TOKEN }}
+        gist_id: be967539e481ae6bb8bb785c4cac289e
+        file_path: ./coverage/coverage_badge.svg
+        file_type: text
     
       
     
