@@ -1,4 +1,4 @@
-![code coverage](https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/coverage-badge/coverage.svg?raw=true)
+![code coverage](https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/refs/heads/coverage-badge/coverage_badge.svg?token=GHSAT0AAAAAADUYEUGRSETMA2DPHBU77PFO2NICICA)
 
 
 # PyTorch implementation of MetaGrad
