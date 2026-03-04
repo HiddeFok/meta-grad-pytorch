@@ -30,7 +30,7 @@ jobs:
         mkdir -p coverage
     - name: Coverage Badge
       run: |
-        genbadge -n "pytest" -i ./coverage.xml -o ./coverage/coverage_badge.svg
+        genbadge coverage -n "pytest" -i ./coverage.xml -o ./coverage/coverage_badge.svg
     - name: Publish coverage report to coverage-badge branch
       uses: JamesIves/github-pages-deploy-action@v4
       with:
