@@ -12,8 +12,6 @@ description = "A PyTorch implementation of the MetaGrad optimizer algorithm"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "torch>=2.9.1",
-    "torchvision>=0.24.1",
     "ruff>=0.15.0",
     "matplotlib>=3.10.8",
     "tqdm>=4.67.3",
@@ -21,6 +19,12 @@ dependencies = [
     "pytest-cov>=7.0.0",
     "parameterfree>=0.0.1",
     "genbadge[coverage]>=1.1.3",
+]
+
+[dependency-groups]
+torch = [
+    "torch>=2.9.1",
+    "torchvision>=0.24.1"
 ]
 
 [tool.uv.sources]
