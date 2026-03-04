@@ -1,6 +1,3 @@
-from typing import Dict
-
-
 class MetaGradMixin:
     """Class collecting any function that is shared amongst te different
     MetaGrad implementations

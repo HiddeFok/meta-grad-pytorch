@@ -1,20 +1,13 @@
 import random
 
-import numpy as np
-
-import torch
-from torch.optim import Adagrad, Adam
-import torch.nn.functional as F
-
 import matplotlib.pyplot as plt
-
+import numpy as np
+import torch
+import torch.nn.functional as F
+from torch.optim import Adagrad, Adam
 from tqdm import trange
 
-plt.rcParams.update({
-    "lines.markersize": 3, 
-    "lines.linewidth": 2.,
-    "font.size": 15
-})
+plt.rcParams.update({"lines.markersize": 3, "lines.linewidth": 2.0, "font.size": 15})
 
 COLOURS = [
     "#E69F00",
@@ -24,20 +17,21 @@ COLOURS = [
     "#F0E442",
     "#0072B2",
     "#CC79A7",
-    "#000000"
+    "#000000",
 ]
 FACECOLOUR = "#E5E5E5"
-LINESTYLES = ['solid', 'dotted', 'dashdot']
-MARKERS = ['v', 's', '*', 'p']
+LINESTYLES = ["solid", "dotted", "dashdot"]
+MARKERS = ["v", "s", "*", "p"]
+
+from parameterfree import COCOB, KT
 
 from metagrad import (
     CoordinateMetaGrad,
-    FullMetaGrad, 
     FullBlockMetagrad,
-    SketchedMetaGrad, 
-    SketchedBlockMetaGrad
+    FullMetaGrad,
+    SketchedBlockMetaGrad,
+    SketchedMetaGrad,
 )
-from parameterfree import KT, COCOB
 
 optimizers = {
     "AdaGrad": (Adagrad, {"lr": 0.1}),
@@ -45,10 +39,16 @@ optimizers = {
     "cMetaGrad": (CoordinateMetaGrad, {"sigma": 3.0, "D_inf": 5}),
     "MetaGrad (Full)": (FullMetaGrad, {"sigma": 3.0, "D_inf": 5}),
     "MetaGrad (Block)": (FullBlockMetagrad, {"sigma": 3.0, "D_inf": 5}),
-    "sMetaGrad (Full)":(SketchedMetaGrad, {"sigma": 3.0, "D_inf": 5, "sketch_size": 10}),
-    "sMetaGrad (Block)":(SketchedBlockMetaGrad, {"sigma": 3.0, "D_inf": 5, "sketch_size": 5}),
-    "KT":(KT, {}),
-    "COCOB":(COCOB, {}),
+    "sMetaGrad (Full)": (
+        SketchedMetaGrad,
+        {"sigma": 3.0, "D_inf": 5, "sketch_size": 10},
+    ),
+    "sMetaGrad (Block)": (
+        SketchedBlockMetaGrad,
+        {"sigma": 3.0, "D_inf": 5, "sketch_size": 5},
+    ),
+    "KT": (KT, {}),
+    "COCOB": (COCOB, {}),
 }
 
 plot_settings = {
@@ -63,6 +63,7 @@ plot_settings = {
     "COCOB": {"color": COLOURS[6], "linestyle": LINESTYLES[1]},
 }
 
+
 def generate_linear(n_samples=1000, dim=10):
     true_param = np.random.uniform(-5, 5, size=dim)
     x_train = np.random.randn(n_samples, dim) * 3
@@ -73,6 +74,7 @@ def generate_linear(n_samples=1000, dim=10):
     targets = torch.tensor(targets, dtype=torch.float32)
     return x_train, targets
 
+
 def generate_sin(n_samples=1000):
     x_train = np.random.randn(n_samples, 1) * 2
 
@@ -81,6 +83,7 @@ def generate_sin(n_samples=1000):
     x_train = torch.tensor(x_train, dtype=torch.float32)
     targets = torch.tensor(targets, dtype=torch.float32)
     return x_train, targets
+
 
 def set_seed(seed: int) -> None:
     np.random.seed(seed)
@@ -182,9 +185,7 @@ if __name__ == "__main__":
         nn_model = SimpleNN(dim=1)
         optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
 
-        sin_losses[opt] = train_online(
-            nn_model, optimizer, sin_data, epochs=EPOCHS
-        )
+        sin_losses[opt] = train_online(nn_model, optimizer, sin_data, epochs=EPOCHS)
 
     plot_and_save(models=plot_settings, losses=linear_losses)
     plot_and_save(models=plot_settings, losses=sin_losses, fname_prefix="sin")

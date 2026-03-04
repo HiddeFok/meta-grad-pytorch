@@ -1,8 +1,8 @@
 import pytest
 import torch
 import torch.nn as nn
-from metagrad import CoordinateMetaGrad, FullMetaGrad
 
+from metagrad import CoordinateMetaGrad, FullMetaGrad
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

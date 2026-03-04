@@ -1,10 +1,11 @@
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
-from torch.optim import Adagrad, Adam
+import numpy as np
+import torch
 import torch.nn.functional as F
-from metagrad import SketchedMetaGrad, SketchedBlockMetaGrad
+from torch.optim import Adagrad, Adam
 from tqdm import trange
+
+from metagrad import SketchedBlockMetaGrad, SketchedMetaGrad
 
 
 def generate_data_stream(n_samples=1000):

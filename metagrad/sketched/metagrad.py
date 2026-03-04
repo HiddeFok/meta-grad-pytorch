@@ -1,8 +1,6 @@
 import torch
 from torch.optim import Optimizer
 
-from metagrad.metagrad import MetaGradMixin
-
 
 class SketchedMetaGradMixin:
     def _init_state(self, state, N, K, w_flat, sigma):
@@ -104,7 +102,7 @@ class SketchedMetaGradMixin:
         _, sing_vals, V_t = torch.linalg.svd(
             torch.movedim(state["S"], -1, 0), full_matrices=False
         )
-        sing_vals, V_t = sing_vals[:, :self.m], V_t[:, : self.m, :]
+        sing_vals, V_t = sing_vals[:, : self.m], V_t[:, : self.m, :]
         sing_vals = torch.movedim(sing_vals, 0, -1)  # (m, K)
         V_t = torch.movedim(V_t, 0, -1)
         print(sing_vals.shape)

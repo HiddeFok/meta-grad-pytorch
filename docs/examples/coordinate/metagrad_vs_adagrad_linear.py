@@ -1,9 +1,10 @@
-import torch
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from torch.optim import Adagrad, Adam
-from metagrad import CoordinateMetaGrad
 from tqdm import trange
+
+from metagrad import CoordinateMetaGrad
 
 
 def quadratic_loss(x, target):

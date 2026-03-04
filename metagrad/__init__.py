@@ -1,7 +1,6 @@
 from metagrad.coordinate.metagrad import CoordinateMetaGrad
-from metagrad.full.metagrad import FullMetaGrad, FullBlockMetagrad
-from metagrad.sketched.metagrad import SketchedMetaGrad, SketchedBlockMetaGrad
-
+from metagrad.full.metagrad import FullBlockMetagrad, FullMetaGrad
+from metagrad.sketched.metagrad import SketchedBlockMetaGrad, SketchedMetaGrad
 
 __all__ = [
     CoordinateMetaGrad,
