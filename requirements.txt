@@ -135,19 +135,19 @@ torch==2.10.0 ; sys_platform == 'darwin'
     # via
     #   metagrad
     #   torchvision
-torch==2.10.0+cpu ; sys_platform != 'darwin' and sys_platform != 'linux'
+torch==2.10.0 ; sys_platform != 'darwin' and sys_platform != 'linux'
     # via
     #   metagrad
     #   torchvision
-torch==2.10.0+cu128 ; sys_platform == 'linux'
+torch==2.10.0 ; sys_platform == 'linux'
     # via
     #   metagrad
     #   torchvision
 torchvision==0.25.0 ; sys_platform == 'darwin'
     # via metagrad
-torchvision==0.25.0+cpu ; sys_platform != 'darwin' and sys_platform != 'linux'
+torchvision==0.25.0 ; sys_platform != 'darwin' and sys_platform != 'linux'
     # via metagrad
-torchvision==0.25.0+cu128 ; sys_platform == 'linux'
+torchvision==0.25.0 ; sys_platform == 'linux'
     # via metagrad
 tqdm==4.67.3
     # via metagrad
