@@ -26,6 +26,7 @@ OPTIMIZERS = optimizers = [
     ),
 ]
 
+torch.manual_seed(123)
 
 class LinearModel(nn.Module):
     def __init__(self, dim):
