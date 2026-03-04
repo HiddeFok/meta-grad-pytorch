@@ -39,7 +39,8 @@ def full_setup():
     p2.grad = torch.randn_like(p2)
 
     all_params, w_flat, g = opt._flatten_params_and_grads()
-    state = opt._init_state(N, w_flat, sigma=1.0)
+    state = {}
+    state = opt._init_state(state, N, K, w_flat, sigma=1.0)
     state["step"] += 1
     return opt, all_params, w_flat, g, state, N, K
 
