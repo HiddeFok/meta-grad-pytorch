@@ -12,6 +12,7 @@ uv.lock
 dist
 *.egg-info
 .coverage
+coverage.*
 .pytest_cache
 
 **/profile_stats

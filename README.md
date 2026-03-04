@@ -1,3 +1,6 @@
+![code coverage](https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/coverage-badge/coverage.svg?raw=true)
+
+
 # PyTorch implementation of MetaGrad
 
 1. Coordinate version has a controller per coordinate
