@@ -5,16 +5,21 @@
 
 # PyTorch implementation of MetaGrad
 
-1. Coordinate version has a controller per coordinate
-2. Sketch version has one controller for all
+This is a *PyTorch* implementation of the optimization procedure  **MetaGrad** proposed in the paper:
 
-## Previous problems run in
+[MetaGrad: Adaptation using Multiple Learning Rates in Online Learning
+](https://jmlr.org/papers/v22/20-1444.html), Tim van Erven, Wouter M. Koolen, Dirk van der Hoeven, 2021.
 
-1. Vector update of Controller part seems to be not efficient
-2. Layerwise update has a weird syntax
-3. The optimizer has to know about if autograd and if 
-        its GPU or CPU which seems weird
+This optimizer does not need to be supplied a learning rate. It automatically
+adepts the learning rate to the appropriate size. This ensures that the
+optimizer will achieve fast rates automatically in settings where there is
+*Strong Convexity* and *Exp-Concavity* for example.
 
+There are 3 flavours to this optimizer:
+
+1. `CoordinateMetaGrad`, where each parameter is treated independently
+2. `SketchedMetaGrad`, where the covariance matrices are approximated using a Singular Value Decomposition.
+3. `FullMetaGrad`, where the complete covariance matrix is tracked. 
 
 ## A note on the layerwise update
 
@@ -47,7 +52,7 @@ to update the parameters, and then go through the parameters again.
 import torch
 from torch.optim import Optimizer
 
-class FullCustomOptimizer(Optimizer):
+class FullBlockOptimizer(Optimizer):
     ...
 
     @torch.no_grad()

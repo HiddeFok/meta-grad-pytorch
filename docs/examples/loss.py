@@ -167,9 +167,9 @@ def plot_and_save(models, losses, fname_prefix="linear"):
     
     axs[0].set_yscale("log")
     if fname_prefix == "sin":
-        axs[0].set_ylim((1e-2, 2))
+        axs[0].set_ylim((1e-1, 2))
     else:
-        axs[0].set_ylim((1e-2, 1.5 * max_loss))
+        axs[0].set_ylim((1e-1, 1.5 * max_loss))
     fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers_log.pdf", bbox_inches="tight")
 
 
