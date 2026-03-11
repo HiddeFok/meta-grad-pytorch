@@ -1,4 +1,5 @@
 import random
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,7 +24,9 @@ FACECOLOUR = "#E5E5E5"
 LINESTYLES = ["solid", "dotted", "dashdot"]
 MARKERS = ["v", "s", "*", "p"]
 
-from parameterfree import COCOB, KT
+from parameterfree.kt import KT
+from parameterfree.ckt import cKT
+from parameterfree.cocob import COCOB
 
 from metagrad import (
     CoordinateMetaGrad,
@@ -48,6 +51,7 @@ optimizers = {
         {"sigma": 3.0, "D_inf": 5, "sketch_size": 5},
     ),
     "KT": (KT, {}),
+    "cKT": (cKT, {}),
     "COCOB": (COCOB, {}),
 }
 
@@ -60,12 +64,13 @@ plot_settings = {
     "sMetaGrad (Full)": {"color": COLOURS[5]},
     "sMetaGrad (Block)": {"color": COLOURS[4], "linestyle": LINESTYLES[1]},
     "KT": {"color": COLOURS[6]},
+    "cKT": {"color": COLOURS[6], "linestyle": LINESTYLES[2]},
     "COCOB": {"color": COLOURS[6], "linestyle": LINESTYLES[1]},
 }
 
 # Printing settings
 OPT_LENGTH = 20
-key_spacing = [" "*(OPT_LENGTH - len(key)) for key in optimizers]
+key_spacing = [" " * (OPT_LENGTH - len(key)) for key in optimizers]
 
 
 def generate_linear(n_samples=1000, dim=10):
@@ -138,7 +143,7 @@ def train_online(model, optimizer, data_stream, epochs=1):
 
 
 def plot_and_save(models, losses, fname_prefix="linear"):
-    fig, axs = plt.subplots(ncols=2, nrows=1, figsize=(10, 5))
+    fig, axs = plt.subplots(ncols=2, nrows=1, figsize=(14, 7))
     for model in models:
         axs[0].plot(losses[model], label=model, **models[model])
 
@@ -146,31 +151,29 @@ def plot_and_save(models, losses, fname_prefix="linear"):
         axs[1].plot(regret, label=model, **models[model])
         if model == "Adam":
             max_loss = max(losses[model])
+            max_regret = max(regret)
 
     axs[0].set_xlabel("Step (T)")
     axs[0].set_ylabel("MSE")
-    if fname_prefix == "sin":
-        axs[0].set_ylim((0, 2))
-    else:
-        axs[0].set_ylim((0, 1.5 * max_loss))
+    axs[0].set_ylim((0, 1.4 * max_loss))
     axs[0].set_title(f"{fname_prefix} regression, multiple optimizers")
     axs[0].set_facecolor(FACECOLOUR)
     axs[0].grid(color="white")
 
     axs[1].set_xlabel("Step (T)")
     axs[1].set_ylabel("Cumulative Regret")
+    axs[1].set_ylim((0, 1.4 * max_regret))
     axs[1].set_facecolor(FACECOLOUR)
     axs[1].grid(color="white")
-    axs[1].legend()
+    axs[1].legend(bbox_to_anchor=(1.6, 1))
 
     fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers.pdf", bbox_inches="tight")
-    
+
     axs[0].set_yscale("log")
-    if fname_prefix == "sin":
-        axs[0].set_ylim((1e-1, 2))
-    else:
-        axs[0].set_ylim((1e-1, 1.5 * max_loss))
-    fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers_log.pdf", bbox_inches="tight")
+    axs[0].set_ylim((1e-1, 1.5 * max_loss))
+    fig.savefig(
+        f"{fname_prefix}_mse_regret_all_optimizers_log.pdf", bbox_inches="tight"
+    )
 
 
 if __name__ == "__main__":
@@ -180,28 +183,44 @@ if __name__ == "__main__":
     EPOCHS = 1000
     N_SAMPLES = 10000
 
+    CKPT_DIR = "./checkpoints/"
+    USE_CKPT = False
+
     linear_data = generate_linear(n_samples=N_SAMPLES, dim=DIM)
     sin_data = generate_sin(n_samples=N_SAMPLES)
 
     linear_losses = {}
     sin_losses = {}
 
-    print("Running model experiments...")
-    for i, opt in enumerate(optimizers):
-        lin_model = LinearModel(DIM)
-        optimizer = optimizers[opt][0](lin_model.parameters(), **optimizers[opt][1])
+    if not USE_CKPT:
+        print("Running model experiments...")
+        for i, opt in enumerate(optimizers):
+            lin_model = LinearModel(DIM)
+            optimizer = optimizers[opt][0](lin_model.parameters(), **optimizers[opt][1])
 
-        linear_losses[opt] = train_online(
-            lin_model, optimizer, linear_data, epochs=EPOCHS
-        )
+            linear_losses[opt] = train_online(
+                lin_model, optimizer, linear_data, epochs=EPOCHS
+            )
 
-        nn_model = SimpleNN(dim=1)
-        optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
+            nn_model = SimpleNN(dim=1)
+            optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
 
-        sin_losses[opt] = train_online(nn_model, optimizer, sin_data, epochs=EPOCHS)
+            sin_losses[opt] = train_online(nn_model, optimizer, sin_data, epochs=EPOCHS)
 
-        print(f"  {opt}:{key_spacing[i]}{linear_losses[opt][-1]:.4f}")
-        print(f"  {opt}:{key_spacing[i]}{sin_losses[opt][-1]:.4f}")
+            print(f"  {opt}:{key_spacing[i]}{linear_losses[opt][-1]:.4f}")
+            print(f"  {opt}:{key_spacing[i]}{sin_losses[opt][-1]:.4f}")
+
+        with open(f"{CKPT_DIR}/linear_losses.pkl", "wb") as f:
+            pickle.dump(linear_losses, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        with open(f"{CKPT_DIR}/sin_losses.pkl", "wb") as f:
+            pickle.dump(sin_losses, f, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        with open(f"{CKPT_DIR}/linear_losses.pkl", "rb") as f:
+            linear_losses = pickle.load(f)
+
+        with open(f"{CKPT_DIR}/sin_losses.pkl", "rb") as f:
+            sin_losses = pickle.load(f)
 
     plot_and_save(models=plot_settings, losses=linear_losses)
     plot_and_save(models=plot_settings, losses=sin_losses, fname_prefix="sin")

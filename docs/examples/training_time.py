@@ -1,5 +1,6 @@
 import random
 import time
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,7 +25,7 @@ FACECOLOUR = "#E5E5E5"
 LINESTYLES = ["solid", "dotted", "dashdot"]
 MARKERS = ["v", "s", "*", "p"]
 
-from parameterfree import COCOB, KT
+from parameterfree import COCOB, KT, cKT
 
 from metagrad import (
     CoordinateMetaGrad,
@@ -49,12 +50,13 @@ optimizers = {
         {"sigma": 3.0, "D_inf": 5, "sketch_size": 5},
     ),
     "KT": (KT, {}),
+    "cKT": (cKT, {}),
     "COCOB": (COCOB, {}),
 }
 
 # Printing settings
 OPT_LENGTH = 20
-key_spacing = [" "*(OPT_LENGTH - len(key)) for key in optimizers]
+key_spacing = [" " * (OPT_LENGTH - len(key)) for key in optimizers]
 
 plot_settings = {
     "AdaGrad": {"color": COLOURS[0]},
@@ -65,6 +67,7 @@ plot_settings = {
     "sMetaGrad (Full)": {"color": COLOURS[5]},
     "sMetaGrad (Block)": {"color": COLOURS[5], "linestyle": LINESTYLES[1]},
     "KT": {"color": COLOURS[6]},
+    "cKT": {"color": COLOURS[6], "linestyle": LINESTYLES[2]},
     "COCOB": {"color": COLOURS[6], "linestyle": LINESTYLES[1]},
 }
 
@@ -124,9 +127,9 @@ class VariableDepthNN(torch.nn.Module):
 
 def train_and_time(model, optimizer, data_stream, epochs=1):
     criterion = torch.nn.MSELoss()
-    
+
     start_time = time.time()
-    
+
     for epoch in range(epochs):
         x, y = data_stream
         optimizer.zero_grad()
@@ -134,7 +137,7 @@ def train_and_time(model, optimizer, data_stream, epochs=1):
         loss = criterion(pred, y)
         loss.backward()
         optimizer.step()
-    
+
     end_time = time.time()
     return end_time - start_time
 
@@ -143,65 +146,90 @@ def plot_training_time(dims, times, title, fname):
     fig, ax = plt.subplots(figsize=(8, 6))
     for opt_name in times:
         ax.plot(dims, times[opt_name], label=opt_name, **plot_settings[opt_name])
-    
+
     ax.set_xlabel("Dimension")
     ax.set_ylabel("Training Time (seconds)")
     ax.set_title(title)
     ax.set_facecolor(FACECOLOUR)
     ax.grid(color="white")
-    ax.legend()
+    ax.legend(bbox_to_anchor=(1, 1))
+    fig.savefig(f"{fname}.pdf", bbox_inches="tight")
     
-    fig.savefig(fname, bbox_inches="tight")
+    ax.set_yscale("log")
+    fig.savefig(f"{fname}_log.pdf", bbox_inches="tight")
 
 
 if __name__ == "__main__":
     set_seed(seed=42)
 
-    # Parameters for linear model experiment
     linear_dims = [10, 20, 50, 100, 200, 400, 800]
     EPOCHS = 1000
     N_SAMPLES = 1000
 
-    # Parameters for NN experiment
-    nn_layers = [2, 4, 8, 16, 32]  # Increasing number of layers
-    
-    # Store training times
+    CKPT_DIR = "./checkpoints/"
+    USE_CKPT = True
+
+    nn_layers = [2, 4, 8, 16, 32]
+
     linear_times = {opt: [] for opt in optimizers}
     nn_times = {opt: [] for opt in optimizers}
 
-    print("Running linear model experiments...")
-    for dim in linear_dims:
-        print(f"Dimension: {dim}")
-        linear_data = generate_linear(n_samples=N_SAMPLES, dim=dim)
-        
-        for i, opt in enumerate(optimizers):
-            lin_model = LinearModel(dim)
-            optimizer = optimizers[opt][0](lin_model.parameters(), **optimizers[opt][1])
-            
-            training_time = train_and_time(lin_model, optimizer, linear_data, epochs=EPOCHS)
-            linear_times[opt].append(training_time)
-            print(f"  {opt}:{key_spacing[i]}{training_time:.4f}s")
+    if not USE_CKPT:
+        print("Running linear model experiments...")
+        for dim in linear_dims:
+            print(f"Dimension: {dim}")
+            linear_data = generate_linear(n_samples=N_SAMPLES, dim=dim)
 
-    print("\nRunning neural network experiments...")
-    for n_layers in nn_layers:
-        print(f"Layers: {n_layers}")
-        nn_data = generate_sin(n_samples=N_SAMPLES, dim=1)
-        
-        for i, opt in enumerate(optimizers):
-            nn_model = VariableDepthNN(input_dim=1, n_layers=n_layers)
-            optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
-            
-            training_time = train_and_time(nn_model, optimizer, nn_data, epochs=EPOCHS)
-            nn_times[opt].append(training_time)
-            print(f"  {opt}:{key_spacing[i]}{training_time:.4f}s")
+            for i, opt in enumerate(optimizers):
+                lin_model = LinearModel(dim)
+                optimizer = optimizers[opt][0](lin_model.parameters(), **optimizers[opt][1])
 
-    # Plot results
-    plot_training_time(linear_dims, linear_times, 
-                      "Training Time vs Dimension (Linear Model)",
-                      "linear_training_time.pdf")
-    
-    plot_training_time(nn_layers, nn_times,
-                      "Training Time vs Network Depth (NN Model)",
-                      "nn_training_time.pdf")
-    
+                training_time = train_and_time(
+                    lin_model, optimizer, linear_data, epochs=EPOCHS
+                )
+                linear_times[opt].append(training_time)
+                print(f"  {opt}:{key_spacing[i]}{training_time:.4f}s")
+
+        print("\nSaving Linear times to checkpoint folder")
+        with open(f"{CKPT_DIR}/linear_times.pkl", "wb") as f:
+            pickle.dump(linear_times, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+        print("\nRunning neural network experiments...")
+        for n_layers in nn_layers:
+            print(f"Layers: {n_layers}")
+            nn_data = generate_sin(n_samples=N_SAMPLES, dim=1)
+
+            for i, opt in enumerate(optimizers):
+                nn_model = VariableDepthNN(input_dim=1, n_layers=n_layers)
+                optimizer = optimizers[opt][0](nn_model.parameters(), **optimizers[opt][1])
+
+                training_time = train_and_time(nn_model, optimizer, nn_data, epochs=EPOCHS)
+                nn_times[opt].append(training_time)
+                print(f"  {opt}:{key_spacing[i]}{training_time:.4f}s")
+
+
+        print("\nSaving NN times to checkpoint folder")
+        with open(f"{CKPT_DIR}/nn_times.pkl", "wb") as f:
+            pickle.dump(nn_times, f, protocol=pickle.HIGHEST_PROTOCOL)
+    else:
+        with open(f"{CKPT_DIR}/linear_times.pkl", "rb") as f:
+            linear_times = pickle.load(f)
+
+        with open(f"{CKPT_DIR}/nn_times.pkl", "rb") as f:
+            nn_times = pickle.load(f)
+
+    plot_training_time(
+        linear_dims,
+        linear_times,
+        "Training Time vs Dimension (Linear Model)",
+        "linear_training_time",
+    )
+
+    plot_training_time(
+        nn_layers,
+        nn_times,
+        "Training Time vs Network Depth (NN Model)",
+        "nn_training_time",
+    )
+
     print("Plots saved as linear_training_time.pdf and nn_training_time.pdf")

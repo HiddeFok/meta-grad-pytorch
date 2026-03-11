@@ -17,7 +17,6 @@ dependencies = [
     "tqdm>=4.67.3",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
-    "parameterfree>=0.0.1",
     "genbadge[coverage]>=1.1.3",
 ]
 
@@ -46,6 +45,11 @@ explicit = true
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true
+
+[tool.uv.workspace]
+members = [
+    "parameterfree",
+]
 
 [tool.setuptools]
 packages = ["metagrad"]
