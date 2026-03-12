@@ -1,4 +1,4 @@
-![code coverage](https://gist.github.com/HiddeFok/be967539e481ae6bb8bb785c4cac289e/raw/coverage_badge.svg)
+![code coverage](https://gist.githubusercontent.com/HiddeFok/be967539e481ae6bb8bb785c4cac289e/raw/coverage_badge.svg)
 ![License](https://img.shields.io/badge/license-GPLv3-green.svg?style=flat)
 ![python](https://img.shields.io/badge/python-3.12-blue?style=flat&logo=python)
 
@@ -82,7 +82,3 @@ This  completely erases any benefit PyTorch provides.
 
 The standard workaround is to have a hybrid between a coordinate-wise version and full version, 
 by performing the full version for each version. 
-
-
-https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/refs/heads/coverage-badge/coverage_badge.svg?token=GHSAT0AAAAAADUYEUGQZDIZPVU7PAGAHVJS2NICOTQ
-https://raw.githubusercontent.com/HiddeFok/meta-grad-pytorch/refs/heads/coverage-badge/coverage_badge.svg?token=GHSAT0AAAAAADUYEUGRSETMA2DPHBU77PFO2NICICA
