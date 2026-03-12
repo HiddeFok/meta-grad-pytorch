@@ -16,6 +16,8 @@ coverage.*
 .pytest_cache
 
 **/checkpoints
+docs/examples/figs
+docs/examples/_archive
 
 **/profile_stats
 

@@ -24,6 +24,7 @@ COLOURS = [
 FACECOLOUR = "#E5E5E5"
 LINESTYLES = ["solid", "dotted", "dashdot"]
 MARKERS = ["v", "s", "*", "p"]
+FIG_DIR = "./figs"
 
 from parameterfree import COCOB, KT, cKT
 
@@ -153,10 +154,12 @@ def plot_training_time(dims, times, title, fname):
     ax.set_facecolor(FACECOLOUR)
     ax.grid(color="white")
     ax.legend(bbox_to_anchor=(1, 1))
-    fig.savefig(f"{fname}.pdf", bbox_inches="tight")
+    fig.savefig(f"./figs/{fname}.pdf", bbox_inches="tight")
+    fig.savefig(f"./figs/{fname}.png", bbox_inches="tight")
     
     ax.set_yscale("log")
-    fig.savefig(f"{fname}_log.pdf", bbox_inches="tight")
+    fig.savefig(f"./figs/{fname}_log.pdf", bbox_inches="tight")
+    fig.savefig(f"./figs/{fname}_log.png", bbox_inches="tight")
 
 
 if __name__ == "__main__":

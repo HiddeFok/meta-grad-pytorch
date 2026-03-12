@@ -8,6 +8,18 @@ import torch.nn.functional as F
 from torch.optim import Adagrad, Adam
 from tqdm import trange
 
+from parameterfree.kt import KT
+from parameterfree.ckt import cKT
+from parameterfree.cocob import COCOB
+
+from metagrad import (
+    CoordinateMetaGrad,
+    FullBlockMetagrad,
+    FullMetaGrad,
+    SketchedBlockMetaGrad,
+    SketchedMetaGrad,
+)
+
 plt.rcParams.update({"lines.markersize": 3, "lines.linewidth": 2.0, "font.size": 15})
 
 COLOURS = [
@@ -23,18 +35,9 @@ COLOURS = [
 FACECOLOUR = "#E5E5E5"
 LINESTYLES = ["solid", "dotted", "dashdot"]
 MARKERS = ["v", "s", "*", "p"]
+FIG_DIR = "./figs"
 
-from parameterfree.kt import KT
-from parameterfree.ckt import cKT
-from parameterfree.cocob import COCOB
 
-from metagrad import (
-    CoordinateMetaGrad,
-    FullBlockMetagrad,
-    FullMetaGrad,
-    SketchedBlockMetaGrad,
-    SketchedMetaGrad,
-)
 
 optimizers = {
     "AdaGrad": (Adagrad, {"lr": 0.1}),
@@ -168,11 +171,15 @@ def plot_and_save(models, losses, fname_prefix="linear"):
     axs[1].legend(bbox_to_anchor=(1.6, 1))
 
     fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers.pdf", bbox_inches="tight")
+    fig.savefig(f"{fname_prefix}_mse_regret_all_optimizers.png", bbox_inches="tight")
 
     axs[0].set_yscale("log")
     axs[0].set_ylim((1e-1, 1.5 * max_loss))
     fig.savefig(
         f"{fname_prefix}_mse_regret_all_optimizers_log.pdf", bbox_inches="tight"
+    )
+    fig.savefig(
+        f"{fname_prefix}_mse_regret_all_optimizers_log.png", bbox_inches="tight"
     )
 
 
