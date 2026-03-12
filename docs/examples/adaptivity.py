@@ -4,9 +4,10 @@ Here we show the adaptivity of MetaGrad, compared to OGD
 
 The settings we consider are:
 
-1. exp-concave vs strongly-convex vs general convex
-2. Bernstein condition
-3. Fixed convex function
+1. exp-concave 
+2. strongly convex
+3. general convex
+
 
 """
 
