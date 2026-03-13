@@ -21,6 +21,10 @@ There are 3 flavours to this optimizer:
 2. `SketchedMetaGrad`, where the covariance matrices are approximated using a Singular Value Decomposition.
 3. `FullMetaGrad`, where the complete covariance matrix is tracked. 
 
+## Installation
+
+TODO:
+
 ## A note on the layerwise update
 
 PyTorch was specifically developed to optimize the parameters of functions with a layer-wise 
