@@ -10,17 +10,19 @@ class FullMetaGradMixin(MetaGradMixin):
 
         Returns the state dict.
         """
+        device = w_flat.device
+        self.eta_grid = self.eta_grid.to(device)
         state["step"] = 0
-        state["b_t"] = torch.tensor(0.0)
-        state["B_t"] = torch.tensor(0.0)
-        state["B_t_prev"] = torch.tensor(0.0)
-        state["b_sum"] = torch.tensor(0.0)
-        state["B_sum"] = torch.tensor(0.0)
+        state["b_t"] = torch.tensor(0.0, device=device)
+        state["B_t"] = torch.tensor(0.0, device=device)
+        state["B_t_prev"] = torch.tensor(0.0, device=device)
+        state["b_sum"] = torch.tensor(0.0, device=device)
+        state["B_sum"] = torch.tensor(0.0, device=device)
 
-        state["Lambda"] = (torch.eye(N) / (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
-        state["Sigma"] = (torch.eye(N) * (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
+        state["Lambda"] = (torch.eye(N, device=device) / (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
+        state["Sigma"] = (torch.eye(N, device=device) * (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
         state["w_hat"] = w_flat.unsqueeze(-1).repeat(1, K)  # (N, K)
-        state["exp_weights"] = torch.ones(K)
+        state["exp_weights"] = torch.ones(K, device=device)
         return state
 
     def _update_gradient_info(self, state, w_flat, g, D_inf):
@@ -53,7 +55,7 @@ class FullMetaGradMixin(MetaGradMixin):
         if reset_mask:
             state["epoch_start_B"] = state["B_t"]
             state["exp_weights"] = torch.where(
-                active, torch.ones(K), state["exp_weights"]
+                active, torch.ones(K, device=state["exp_weights"].device), state["exp_weights"]
             )
         return active
 

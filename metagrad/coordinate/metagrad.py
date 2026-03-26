@@ -16,6 +16,7 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
     def _init_state(self, p, sigma):
         """Initialize optimizer state for parameter p. Returns the state dict."""
         state = self.state[p]
+        self.eta_grid = self.eta_grid.to(p.device)
         state["step"] = 0
         state["b_t"] = torch.zeros_like(p)
         state["B_t"] = torch.zeros_like(p)
@@ -104,6 +105,7 @@ class CoordinateMetaGrad(MetaGradMixin, Optimizer):
 
         Modifies state in-place.
         """
+        # TODO: use active grid and initialize when active again
         w_eta = torch.clamp(state["eta_experts"]["w_hat"], -D_inf, D_inf)
         diff = w_eta - w_controller.unsqueeze(-1)
         state["eta_experts"]["lambda"].add_(

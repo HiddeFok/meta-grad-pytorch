@@ -8,22 +8,26 @@ class SketchedMetaGradMixin:
 
         Returns the state dict.
         """
+        device = w_flat.device
+        self.eta_grid = self.eta_grid.to(device)
+
         state["step"] = 0
-        state["b_t"] = torch.tensor(0.0)
-        state["B_t"] = torch.tensor(0.0)
-        state["B_t_prev"] = torch.tensor(0.0)
-        state["b_sum"] = torch.tensor(0.0)
-        state["B_sum"] = torch.tensor(0.0)
+        state["b_t"] = torch.tensor(0.0, device=device)
+        state["B_t"] = torch.tensor(0.0, device=device)
+        state["B_t_prev"] = torch.tensor(0.0, device=device)
+        state["b_sum"] = torch.tensor(0.0, device=device)
+        state["B_sum"] = torch.tensor(0.0, device=device)
 
         # Sketch states
         sketch_size = min(self.m, N)
-        state["S"] = torch.zeros(2 * sketch_size, N, K)
-        state["H"] = (torch.eye(2 * sketch_size) * (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
+        state["S"] = torch.zeros(size=(2 * sketch_size, N, K), device=device)
+        state["H"] = (torch.eye(2 * sketch_size, device=device) * (sigma**2)).unsqueeze(-1).repeat(1, 1, K)
 
         state["w_hat"] = w_flat.unsqueeze(-1).repeat(1, K)  # (N, K)
-        state["exp_weights"] = torch.ones(K)
+        state["exp_weights"] = torch.ones(K, device=device)
 
-        state["epoch_counter"] = torch.zeros(K, dtype=torch.long)
+        # state["epoch_counter"] = torch.zeros(K, device=device)
+        state["epoch_counter"] = 0
 
         return state
 
@@ -57,7 +61,7 @@ class SketchedMetaGradMixin:
         if reset_mask:
             state["epoch_start_B"] = state["B_t"]
             state["exp_weights"] = torch.where(
-                active, torch.ones(K), state["exp_weights"]
+                active, torch.ones(K, device=state["exp_weights"].device), state["exp_weights"]
             )
         return active
 
@@ -82,8 +86,9 @@ class SketchedMetaGradMixin:
     def _tau_less_update(self, state, row_idx, N, K, g):
         sketch_size = min(self.m, N)
 
-        e = torch.zeros(2 * sketch_size, K)
-        e[row_idx, :] = torch.ones(K)
+        device = g.device
+        e = torch.zeros(2 * sketch_size, K, device=device)
+        e[row_idx, :] = torch.ones(K, device=device)
         S_g = torch.einsum("ijk,j -> ik", state["S"], g)
         q = 2 * (self.eta_grid**2) * (S_g - 0.5 * (g @ g) * e)
 
@@ -114,13 +119,14 @@ class SketchedMetaGradMixin:
 
         S_top_rows = torch.clamp(sing_vals**2 - sigma_m**2, min=0.0).sqrt()
         S_top_rows = S_top_rows.unsqueeze(1) * V_t
-        S_new = torch.zeros(2 * sketch_size, N, K)
+        device = state["S"].device
+        S_new = torch.zeros(2 * sketch_size, N, K, device=device)
         S_new[:sketch_size, :, :] = S_top_rows
 
         H_top_rows = 1 / (
             sigma**-2 + 2 * self.eta_grid**2 * (sing_vals**2 - sigma_m**2)
         )  # (m, K)
-        H_new = torch.ones(sketch_size, K) * sigma**2  # (m,  K)
+        H_new = torch.ones(sketch_size, K, device=device) * sigma**2  # (m,  K)
         H_new = torch.cat((H_top_rows, H_new), dim=0)  # (2m, K)
         H_new = torch.diag_embed(H_new.T).permute(1, 2, 0)  # (2m, 2m, K)
 
@@ -132,18 +138,20 @@ class SketchedMetaGradMixin:
         Modifies state in-place.
         """
         sketch_size = min(self.m, N)
-        tau = torch.remainder(state["epoch_counter"], sketch_size + 1)
-        row_idx = tau + sketch_size - 1
+        tau = state["epoch_counter"] % sketch_size  # 0 to sketch_size-1
+
+        row_idx = tau + sketch_size
         state["S"][row_idx, :, :] = g.unsqueeze(-1).repeat(1, K)
 
-        S_1, H_1 = self._tau_less_update(state, row_idx, N, K, g)
-        S_2, H_2 = self._tau_more_update(state, N, K, sigma)
+        if tau < sketch_size - 1:
+            _, H_new = self._tau_less_update(state, row_idx, N, K, g)
+            state["H"] = H_new
+        else:
+            S_new, H_new = self._tau_more_update(state, N, K, sigma)
+            state["S"] = S_new
+            state["H"] = H_new
 
-        state["H"] = torch.where(tau < sketch_size, H_1, H_2)
-        state["S"] = torch.where(tau < sketch_size, S_1, S_2)
-
-        state["epoch_counter"].add_(torch.where(active, 1, 0))
-
+        state["epoch_counter"] += 1
         w_eta = torch.clamp(state["w_hat"], -D_inf, D_inf)
         diff = w_eta - w_controller.unsqueeze(-1)
 
